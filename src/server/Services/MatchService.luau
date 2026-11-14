@@ -1163,7 +1163,7 @@ local function computeHoleResults(m: MatchState, h: HoleState): { HoleResult }
 	return results
 end
 
--- Record personnel Solo (data.stats.bestSolo[holeId] = { strokes, time }) via PlayerDataService.Update.
+-- Record personnel Solo (data.bestSolo[holeId] = { strokes, time }, champ du Schema) via PlayerDataService.Update.
 local function saveSoloRecord(player: Player, holeId: string, strokes: number, time: number)
 	local service = optionalService("PlayerDataService")
 	if not service or type(service.Update) ~= "function" then
@@ -1177,14 +1177,14 @@ local function saveSoloRecord(player: Player, holeId: string, strokes: number, t
 		if type(data.stats) ~= "table" then
 			data.stats = {}
 		end
-		if type(data.stats.bestSolo) ~= "table" then
-			data.stats.bestSolo = {}
+		if type(data.bestSolo) ~= "table" then
+			data.bestSolo = {}
 		end
-		local previous = data.stats.bestSolo[holeId]
+		local previous = data.bestSolo[holeId]
 		local candidate = { strokes = strokes, time = math.floor(time * 100 + 0.5) / 100 }
 		local valid = type(previous) == "table" and Validate.isFiniteNumber(previous.strokes) and Validate.isFiniteNumber(previous.time)
 		if Scoring.isBetterSoloRecord(candidate, if valid then previous else nil) then
-			data.stats.bestSolo[holeId] = candidate
+			data.bestSolo[holeId] = candidate
 			improved = true
 			return true, nil
 		end

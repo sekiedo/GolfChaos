@@ -14,12 +14,13 @@
    ============================================================================ */
 const DATA = {
   majLe: "14/11/2026",
-  etape: { numero: 2, titre: "PlayerDataService et sauvegarde", detail: "Étape 1 terminée (module Services commun). En cours : écriture des modules de sauvegarde absents — ProfileStore, MemoryAdapter, Migrations, PlayerDataService." },
+  etape: { numero: 3, titre: "Textes manquants de la boutique", detail: "Étapes 1 (module Services) et 2 (sauvegarde complète) terminées. En cours : clés shop.err.* en français et en anglais." },
   chiffres: [
     { valeur: "192", libelle: "fichiers exportés" },
     { valeur: "162", libelle: "fichiers Luau du jeu" },
     { valeur: "54 951", libelle: "lignes de Luau" },
     { valeur: "75 / 77", libelle: "tests unitaires (Studio, 14/11)" },
+    { valeur: "183 / 191", libelle: "tests exécutés en local" },
     { valeur: "63", libelle: "remotes typés" },
     { valeur: "6 / 81", libelle: "trous commencés" }
   ],
@@ -36,7 +37,7 @@ const DATA = {
     { nom: "Objets (17)", fichiers: "Config.Items, ItemOdds · ItemService à écrire", elements: ["teste", "afaire", "afaire"] },
     { nom: "Progression et économie", fichiers: "Achievements, Rewards, AchievementService, RewardService", elements: ["teste", "ecrit"] },
     { nom: "Cosmétiques", fichiers: "Shared.Cosmetics, CosmeticService, catalogues", elements: ["ecrit", "ecrit", "encours", "afaire"] },
-    { nom: "Sauvegarde", fichiers: "Schema, DataStoreAdapter · PlayerDataService absent", elements: ["ecrit", "ecrit", "afaire", "afaire"] },
+    { nom: "Sauvegarde", fichiers: "Schema, DataStoreAdapter, ProfileStore, ProfileOps, PlayerDataService", elements: ["ecrit", "ecrit", "ecrit", "ecrit"] },
     { nom: "Trous : format, validateur, constructeur", fichiers: "HoleValidator, HoleBuilder, Props, Data.Holes", elements: ["encours"] },
     { nom: "Parcours et accueil", fichiers: "CourseService, Obstacles, LobbyBuilder", elements: ["encours"] },
     { nom: "Partie : machine à états, modes, salon", fichiers: "MatchService, SpawnService, LobbyService", elements: ["encours", "ecrit"] },
@@ -54,13 +55,14 @@ const DATA = {
       "Vérification de la présence des sources sur disque (src/, docs/, scripts/, legacy/)",
       "Création de dashboard.html",
       "Dépôt Git local (branche dev/reprise) et outil de vérification scripts/verifier.sh",
-      "Étape 1 — module commun Server.Util.Services à la place des 11 copies (−253 lignes)"
+      "Étape 1 — module commun Server.Util.Services à la place des 11 copies (−253 lignes)",
+      "Étape 2 — sauvegarde : PlayerDataService, ProfileStore, ProfileOps, MemoryAdapter, Migrations (20 tests verts en local)",
+      "Banc d'essai local scripts/essais-locaux.sh (exécute les tests sans Studio)"
     ],
     encours: [
-      "Étape 2 — PlayerDataService, ProfileStore, MemoryAdapter, Migrations"
+      "Étape 3 — textes manquants shop.err.* (fr et en)"
     ],
     afaire: [
-      "Étape 3 — textes manquants shop.err.* (fr et en)",
       "Vérifier les autres points d'intégration signalés au §7 du document",
       "Terminer la boucle jouable et la jouer en Play solo (DevBridge scenario)",
       "Découper les gros modules : BallService (3 035 l.), MatchService (2 725 l.), CourseService (1 850 l.)",
@@ -73,6 +75,8 @@ const DATA = {
     ]
   },
   journal: [
+    { date: "14/11/2026", titre: "Étape 2 terminée — sauvegarde", texte: "Six modules écrits : Config.Data, Migrations, MemoryAdapter, ProfileStore (verrou de session), ProfileOps (transactions tout-ou-rien) et PlayerDataService. Un chargement en échec n'écrit jamais rien ; le mode mémoire est signalé. 20 tests verts en local. Correctif : le record Solo va dans data.bestSolo. Non testé dans Studio." },
+    { date: "14/11/2026", titre: "Banc d'essai local", texte: "scripts/essais-locaux.sh exécute les specs avec l'interpréteur Luau et une émulation minimale de Roblox : 183 tests verts sur 191 (les 8 échecs viennent de l'émulation : pas de CFrame, aléatoire différent)." },
     { date: "14/11/2026", titre: "Étape 1 terminée — module Services", texte: "Nouveau module Server.Util.Services (get, call, connect) utilisé par 11 fichiers serveur ; 253 lignes dupliquées supprimées ; spec de 8 tests ajoutée. Construction Rojo OK, analyse de types sans nouveau diagnostic. Non testé dans Studio." },
     { date: "14/11/2026", titre: "Outils de vérification", texte: "Dépôt Git créé (branche dev/reprise). scripts/verifier.sh construit la place avec Rojo 7.7.1 et compare l'analyse de types à une référence de 601 diagnostics d'origine." },
     { date: "14/11/2026", titre: "Plan de l'étape 1 proposé", texte: "Accès aux services centralisé dans un seul module (Server.Util.Services) à la place des 11 copies réparties dans les services. En attente de validation ; aucun fichier du jeu modifié." },
