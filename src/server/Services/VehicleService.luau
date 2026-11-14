@@ -33,6 +33,7 @@ local Log = require(Shared.Util.Log)
 local Net = require(Shared.Net)
 local Trove = require(Shared.Util.Trove)
 
+local KartBody = require(script.Parent.Parent.Vehicle.KartBody)
 local Services = require(script.Parent.Parent.Util.Services)
 local services = Services.scope("Vehicle")
 
@@ -49,7 +50,7 @@ local TURN_RATE = 1.9 -- rad/s à pleine vitesse de braquage
 local RAM_RADIUS = 5.5
 local RAM_REHIT_SECONDS = 1.2
 local STATE_INTERVAL = 0.5
-local KART_SIZE = Vector3.new(7, 1.2, 12)
+local KART_SIZE = Vector3.new(7, 2, 12)
 local SEAT_LAYOUT = { -- décalages locaux (x, z) : conducteur puis 7 passagers
 	Vector3.new(-1.6, 1.2, -2.5),
 	Vector3.new(1.6, 1.2, -2.5),
@@ -75,6 +76,7 @@ type Cart = {
 	stuckFor: number,
 	lastResetAt: number,
 	flush: number,
+	rig: KartBody.Rig,
 }
 
 local carts: { [number]: Cart } = {}
@@ -260,6 +262,8 @@ local function build(owner: Player, cframe: CFrame): Cart
 	prompt.RequiresLineOfSight = false
 	prompt.Parent = chassis
 
+	local rig = KartBody.dress(model, chassis, DEF.color, KART_SIZE)
+
 	model:SetAttribute("CartId", cartCounter)
 	model:SetAttribute("OwnerUserId", owner.UserId)
 	model.Parent = folder()
@@ -284,6 +288,7 @@ local function build(owner: Player, cframe: CFrame): Cart
 		stuckFor = 0,
 		lastResetAt = -math.huge,
 		flush = 0,
+		rig = rig,
 	}
 	cart.trove:Add(model)
 	model:SetAttribute("Structure", cart.structure)
@@ -339,6 +344,8 @@ local function updateCart(cart: Cart, dt: number)
 		local authority = math.clamp(math.abs(cart.speed) / 10, 0, 1) * (if cart.speed >= 0 then 1 else -1)
 		angular.AngularVelocity = Vector3.new(0, -steer * TURN_RATE * authority, 0)
 	end
+
+	KartBody.animate(cart.rig, cart.speed, steer, dt)
 
 	-- Statistique de distance (conducteur).
 	if driver and cart.speed > 0 then
