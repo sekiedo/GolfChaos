@@ -59,95 +59,13 @@ type Mode = Types.Mode
 type Team = Types.Team
 type MatchSettings = Types.MatchSettings
 type HoleResult = Types.HoleResult
-type EntryStatus = "Playing" | "Finished" | "TimeOut" | "Forfeit" | "Disconnected" | "AFK"
-
-type PlayerRecord = {
-	userId: number,
-	name: string,
-	player: Player?,
-	present: boolean,
-	team: Team?,
-	joinedHole: number, -- index de playlist du premier trou joué
-	holesAccounted: number, -- trous joués déjà comptés dans totalStrokes (rattrapage des trous manqués)
-	points: number,
-	holeWins: number,
-	totalStrokes: number,
-	birdiesOrBetter: number,
-	holesPlayed: number,
-	holesFinished: number,
-	activeHoles: number,
-	parOrBetter: number,
-	holeInOnes: number,
-	eagles: number,
-	birdies: number,
-	soloHoles: { Scoring.SoloHole },
-	afkFlag: boolean, -- encore marqué AFK : délai réduit au trou suivant
-	afkPos: Vector3?,
-}
-
-type HoleEntry = {
-	record: PlayerRecord,
-	status: EntryStatus,
-	reason: string?,
-	finishOrder: number?,
-	finishTime: number?,
-	strokes: number,
-	shots: number,
-	fromDistance: number?,
-	wasPutt: boolean?,
-	points: number,
-	bonuses: { string },
-	category: string?,
-	startCFrame: CFrame,
-	lastActivityAt: number,
-	activityPos: Vector3?,
-	heartbeatPos: Vector3?,
-	heartbeatLook: Vector3?,
-	afkWarned: boolean,
-}
-
-type HoleState = {
-	index: number,
-	def: Types.HoleDef,
-	runtime: Types.HoleRuntime,
-	par: number,
-	cap: number,
-	timeLimit: number,
-	referenceTime: number,
-	startedAt: number,
-	deadline: number,
-	overtimeTriggered: boolean,
-	entries: { [number]: HoleEntry },
-	order: { number },
-	finishCount: number,
-	lastFinishFrame: number?,
-	lastFinishRank: number?,
-	teamSizes: { [string]: number },
-	frozen: boolean,
-	endCheckScheduled: boolean,
-	results: { HoleResult }?,
-	teamWinner: Team?,
-	trove: Trove,
-}
-
-type MatchState = {
-	id: string,
-	settings: MatchSettings,
-	mode: Mode,
-	playlist: { string },
-	holeIndex: number,
-	holesPlayed: number,
-	holeCaps: { number }, -- plafond de coups de chaque trou joué (dans l'ordre)
-	records: { [number]: PlayerRecord },
-	order: { number },
-	pendingLate: { [Player]: boolean },
-	teamScores: { [string]: number },
-	teamInstances: { [string]: Team },
-	trove: Trove,
-	lastHoleResults: { [string]: any }?,
-	podium: { [string]: any }?,
-	completed: boolean,
-}
+local MatchTypes = require(script.Parent.Parent.Match.Types)
+local Summary = require(script.Parent.Parent.Match.Summary)
+type EntryStatus = MatchTypes.EntryStatus
+type PlayerRecord = MatchTypes.PlayerRecord
+type HoleEntry = MatchTypes.HoleEntry
+type HoleState = MatchTypes.HoleState
+type MatchState = MatchTypes.MatchState
 
 local LOG_TAG = "Match"
 local LOCK_REASON = "MatchPhase"
@@ -1755,106 +1673,6 @@ end
 -- Podium et fin de partie
 --------------------------------------------------------------------------------
 
-local function buildSummary(m: MatchState): ({ [string]: any }, { [string]: any })
-	local rows = standingsRows(m)
-	local winner: string? = nil
-	if m.mode == "Teams" then
-		winner = Scoring.teamMatchResult(m.teamScores.Red, m.teamScores.Blue)
-	end
-	local standings = {}
-	local playersInfo = {}
-	local netPlayers = {}
-	for _, row in rows do
-		local record = m.records[row.userId]
-		table.insert(standings, {
-			userId = row.userId,
-			name = row.name,
-			team = row.team,
-			points = row.points,
-			strokes = row.totalStrokes,
-			holeWins = row.holeWins,
-			rank = row.rank,
-		})
-		if record then
-			local teamResult = if winner ~= nil
-				then Scoring.teamResultFor(record.team, winner :: any)
-				else nil
-			local soloSummary = Scoring.soloSummary(record.soloHoles)
-			local info = {
-				userId = record.userId,
-				name = record.name,
-				team = record.team,
-				mode = m.mode,
-				rank = row.rank,
-				participants = #rows,
-				holeCount = m.holesPlayed,
-				activeHoles = record.activeHoles,
-				holesFinished = record.holesFinished,
-				parOrBetter = record.parOrBetter,
-				holeInOnes = record.holeInOnes,
-				eagles = record.eagles,
-				birdies = record.birdies,
-				teamResult = teamResult,
-				solo = {
-					strokes = soloSummary.strokes,
-					par = soloSummary.par,
-					toPar = soloSummary.toPar,
-					toParText = Scoring.signed(soloSummary.toPar),
-					time = soloSummary.time,
-					holesFinished = soloSummary.holesFinished,
-				},
-			}
-			table.insert(netPlayers, info)
-			local withPlayer = table.clone(info) :: { [string]: any }
-			withPlayer.player = record.player
-			table.insert(playersInfo, withPlayer)
-		end
-	end
-	local base = {
-		matchId = m.id,
-		mode = m.mode,
-		standings = standings,
-		teamScores = { Red = m.teamScores.Red, Blue = m.teamScores.Blue },
-		winner = winner,
-		winnerUserId = if m.mode ~= "Teams" and rows[1] then rows[1].userId else 0,
-		holeCount = m.holesPlayed,
-		completed = true,
-	}
-	local summary = table.clone(base) :: { [string]: any }
-	summary.players = playersInfo
-	local payload = table.clone(base) :: { [string]: any }
-	payload.players = netPlayers
-	return summary, payload
-end
-
--- Places du podium : les trois premiers (en mode Équipes, l'équipe gagnante d'abord).
-local function podiumOrder(m: MatchState, standings: { { [string]: any } }, winner: string?): { Player }
-	local ordered: { { [string]: any } } = {}
-	if m.mode == "Teams" and (winner == "Red" or winner == "Blue") then
-		for _, row in standings do
-			if row.team == winner then
-				table.insert(ordered, row)
-			end
-		end
-		for _, row in standings do
-			if row.team ~= winner then
-				table.insert(ordered, row)
-			end
-		end
-	else
-		ordered = standings
-	end
-	local result: { Player } = {}
-	for _, row in ordered do
-		local record = m.records[row.userId]
-		local player = record and record.player
-		if player and isPresent(player) then
-			table.insert(result, player)
-		end
-	end
-	return result
-end
-
 local function placeOnPodium(m: MatchState, order: { Player })
 	local okLobby, lobby = callService("CourseService", "GetLobby")
 	local kiosks = if okLobby and type(lobby) == "table" and type(lobby.kiosks) == "table" then lobby.kiosks else {}
@@ -1906,10 +1724,10 @@ enterPodium = function()
 	GameState.set("HoleCount", #m.playlist)
 	setMusic(AUDIO.MusicPodium)
 
-	local summary, payload = buildSummary(m)
+	local summary, payload = Summary.build(m, standingsRows(m))
 	m.podium = payload
 	Net.fireAll("Match.Podium", payload)
-	placeOnPodium(m, podiumOrder(m, payload.standings, payload.winner))
+	placeOnPodium(m, Summary.podiumOrder(m, payload.standings, payload.winner, isPresent))
 	playSound(AUDIO.Finish, nil)
 
 	local winner = payload.winner
