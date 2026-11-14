@@ -14,13 +14,13 @@
    ============================================================================ */
 const DATA = {
   majLe: "14/11/2026",
-  etape: { numero: 5, titre: "Émotes et animations (écrites, non jouées)", detail: "Étapes 1 à 5 écrites et vérifiées en local. Reste : jouer en Studio, réorienter le manche de club, puis une passe visuelle (le rendu du jeu n'a jamais été relu à l'écran)." },
+  etape: { numero: 6, titre: "Catalogues de cosmétiques et manche de club (écrits, non joués)", detail: "Étapes 1 à 6 écrites et vérifiées en local. Reste : test visuel et jeu dans Studio à la toute fin, puis écrans Boutique / Personnaliser / Défis." },
   chiffres: [
     { valeur: "192", libelle: "fichiers exportés" },
     { valeur: "162", libelle: "fichiers Luau du jeu" },
     { valeur: "54 951", libelle: "lignes de Luau" },
     { valeur: "75 / 77", libelle: "tests unitaires (Studio, 14/11)" },
-    { valeur: "195 / 198", libelle: "tests exécutés en local" },
+    { valeur: "197 / 198", libelle: "tests exécutés en local" },
     { valeur: "63", libelle: "remotes typés" },
     { valeur: "6 / 81", libelle: "trous commencés" }
   ],
@@ -60,13 +60,14 @@ const DATA = {
       "Banc d'essai local scripts/essais-locaux.sh (exécute les tests sans Studio)",
       "Étape 3 — textes shop.err.* et noms des 52 cosmétiques, en français et en anglais",
       "Étape 4 — audit : aucun appel entre services vers une méthode ou un signal inexistant ; diagnostics de types d'origine = bruit",
-      "Étape 5 — 13 émotes : textes fr/en, EmoteService, AnimationController (tests locaux 195/198, types sans nouveau diagnostic)"
+      "Étape 5 — 13 émotes : textes fr/en, EmoteService, AnimationController (tests locaux 195/198, types sans nouveau diagnostic)",
+      "Étape 6 — catalogues : 21 tenues, 16 clubs, 11 balles, 6 effets de trou ; manche de club réorienté ; effet de trou branché (tests locaux 197/198)"
     ],
     encours: [
       "Passe visuelle : rendu du jeu jamais relu à l'écran (à cadrer avec l'utilisateur)"
     ],
     afaire: [
-      "Réorienter le manche de club pendant les animations de golf (champ club) et choisir une émote depuis un écran",
+      "Choisir une émote depuis un écran ; vérifier en Studio le manche de club, les tenues et les effets de trou",
       "Terminer la boucle jouable et la jouer en Play solo (DevBridge scenario)",
       "Découper les gros modules : BallService (3 035 l.), MatchService (2 725 l.), CourseService (1 850 l.)",
       "ItemService + 17 comportements d'objets",
@@ -78,6 +79,7 @@ const DATA = {
     ]
   },
   journal: [
+    { date: "14/11/2026", titre: "Étape 6 terminée — catalogues et manche de club", texte: "Ajout de 20 tenues, 15 clubs, 10 balles et 5 effets de trou (plus les objets par défaut), avec tous leurs textes fr/en. Le manche de club suit maintenant l'axe pivot → mains pendant les animations de golf (calcul direct dans AnimationController, soudure ClubGrip côté serveur). L'effet de trou équipé est joué par EffectsController. 197 tests sur 198 en local (reste le générateur aléatoire de l'émulation). Non testé dans Studio." },
     { date: "14/11/2026", titre: "Étape 5 terminée — émotes", texte: "Textes des 13 émotes (fr/en), EmoteService (validation serveur, arrêt sur golf/combat/KO/visée/véhicule/mort) et AnimationController (couches, fondus, heure serveur, effets réduits). Non testé dans Studio ; le manche de club n'est pas réorienté. Correctif : dashboard.html avait une erreur de syntaxe (liste « fait ») qui empêchait l'affichage." },
     { date: "14/11/2026", titre: "Arrêt — limite d'usage atteinte", texte: "Étapes 1 à 4 enregistrées dans Git. L'étape 5 (émotes et animations) est analysée mais pas commencée ; aucun fichier du jeu n'est laissé à moitié modifié." },
     { date: "14/11/2026", titre: "Étape 4 terminée — audit", texte: "Les 28 accès directs et tous les appels protégés entre services visent des méthodes et signaux qui existent (hors ItemService et VehicleService, pas encore écrits). Les diagnostics de types examinés un par un sont du bruit de typage strict, pas des bugs. Aucun fichier du jeu modifié." },

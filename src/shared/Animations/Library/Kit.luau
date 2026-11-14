@@ -57,6 +57,9 @@ Kit.ARM_UPPER = 0.95 -- pivot d'épaule -> pivot de coude
 Kit.ARM_LOWER = 1.1 -- pivot de coude -> prise de la main
 Kit.THIGH = 0.95 -- hanche -> genou
 Kit.SHIN = 0.9 -- genou -> cheville
+-- Centre de l'arc que suivent les mains pendant le swing (repère de l'UpperTorso). Le manche du club prolonge la
+-- droite « centre -> mains » : AnimationController s'en sert pour orienter le club (champ club = true).
+Kit.CLUB_PIVOT = Vector3.new(0, 0.3, -0.35)
 
 --------------------------------------------------------------------------------
 -- Rotations

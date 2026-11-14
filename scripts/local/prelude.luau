@@ -102,8 +102,35 @@ function Methods.GetDescendants(self)
 	walk(self)
 	return out
 end
+local PART_CLASSES = { Part = true, WedgePart = true, CornerWedgePart = true, MeshPart = true }
 function Methods.IsA(self, class)
-	return self.ClassName == class or class == "Instance"
+	return self.ClassName == class or class == "Instance" or (class == "BasePart" and PART_CLASSES[self.ClassName] == true)
+end
+-- Boîte englobante alignée sur le repère mondial (suffit aux modèles construits à orientation identité).
+function Methods.GetBoundingBox(self)
+	local lo, hi = nil, nil
+	local function visit(node)
+		if PART_CLASSES[node.ClassName] and node.CFrame and node.Size then
+			local half = Vector3.new(node.Size.X / 2, node.Size.Y / 2, node.Size.Z / 2)
+			for _, sx in { -1, 1 } do
+				for _, sy in { -1, 1 } do
+					for _, sz in { -1, 1 } do
+						local p = node.CFrame * Vector3.new(half.X * sx, half.Y * sy, half.Z * sz)
+						lo = lo and Vector3.new(math.min(lo.X, p.X), math.min(lo.Y, p.Y), math.min(lo.Z, p.Z)) or p
+						hi = hi and Vector3.new(math.max(hi.X, p.X), math.max(hi.Y, p.Y), math.max(hi.Z, p.Z)) or p
+					end
+				end
+			end
+		end
+	end
+	visit(self)
+	for _, node in Methods.GetDescendants(self) do
+		visit(node)
+	end
+	if not lo or not hi then
+		return CFrame.new(0, 0, 0), Vector3.new(0, 0, 0)
+	end
+	return CFrame.new((lo.X + hi.X) / 2, (lo.Y + hi.Y) / 2, (lo.Z + hi.Z) / 2), Vector3.new(hi.X - lo.X, hi.Y - lo.Y, hi.Z - lo.Z)
 end
 function Methods.Clone(self)
 	local copy = newNode(self.Name, self.ClassName)
@@ -221,6 +248,11 @@ rawset(runService, "PreSimulation", stubSignal())
 Instance = {
 	new = function(class, parent)
 		local node = newNode(class, class)
+		if PART_CLASSES[class] then
+			-- Valeurs par défaut d'une pièce Roblox (nécessaires à Build.attach et à GetBoundingBox).
+			rawset(node, "CFrame", CFrame.identity)
+			rawset(node, "Size", Vector3.new(4, 1, 2))
+		end
 		if parent then
 			node.Parent = parent
 		end
@@ -547,12 +579,64 @@ NumberRange = {
 	end,
 }
 
+-- Types de valeurs que les constructeurs de cosmétiques manipulent sans les interpréter.
+UDim = {
+	new = function(scale, offset)
+		return { Scale = scale or 0, Offset = offset or 0 }
+	end,
+}
+UDim2 = {
+	new = function(sx, ox, sy, oy)
+		return { X = UDim.new(sx, ox), Y = UDim.new(sy, oy) }
+	end,
+	fromScale = function(x, y)
+		return { X = UDim.new(x, 0), Y = UDim.new(y, 0) }
+	end,
+	fromOffset = function(x, y)
+		return { X = UDim.new(0, x), Y = UDim.new(0, y) }
+	end,
+}
+NumberSequenceKeypoint = {
+	new = function(time, value, envelope)
+		return { Time = time, Value = value, Envelope = envelope or 0 }
+	end,
+}
+NumberSequence = {
+	new = function(a, b)
+		if type(a) == "table" then
+			return { Keypoints = a }
+		end
+		return { Keypoints = { NumberSequenceKeypoint.new(0, a), NumberSequenceKeypoint.new(1, b or a) } }
+	end,
+}
+ColorSequenceKeypoint = {
+	new = function(time, color)
+		return { Time = time, Value = color }
+	end,
+}
+ColorSequence = {
+	new = function(a, b)
+		if type(a) == "table" and a._isColor3 then
+			return { Keypoints = { ColorSequenceKeypoint.new(0, a), ColorSequenceKeypoint.new(1, b or a) } }
+		end
+		return { Keypoints = a }
+	end,
+}
+TweenInfo = {
+	new = function(...)
+		return { ... }
+	end,
+}
+
+local function colorLerp(a, b, t)
+	return { R = a.R + (b.R - a.R) * t, G = a.G + (b.G - a.G) * t, B = a.B + (b.B - a.B) * t, _isColor3 = true, Lerp = colorLerp }
+end
 Color3 = {
 	new = function(r, g, b)
-		return { R = r or 0, G = g or 0, B = b or 0, _isColor3 = true }
+		return { R = r or 0, G = g or 0, B = b or 0, _isColor3 = true, Lerp = colorLerp }
 	end,
 	fromRGB = function(r, g, b)
-		return { R = (r or 0) / 255, G = (g or 0) / 255, B = (b or 0) / 255, _isColor3 = true }
+		return { R = (r or 0) / 255, G = (g or 0) / 255, B = (b or 0) / 255, _isColor3 = true, Lerp = colorLerp }
 	end,
 	fromHSV = function(h, s, v)
 		return { R = v, G = v * (1 - s), B = h, _isColor3 = true }

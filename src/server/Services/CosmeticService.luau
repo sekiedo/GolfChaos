@@ -398,9 +398,15 @@ local function attachClub(character: Model, model: Model)
 			weld.Parent = part
 		end
 	end
-	local weld = Instance.new("WeldConstraint")
+	-- Soudure réglable (Weld, pas WeldConstraint) : AnimationController modifie C0 côté client pour tenir le manche
+	-- dans l'axe des mains pendant les animations de golf ; DefaultC0 = position de repos (club tenu normalement).
+	local weld = Instance.new("Weld")
+	weld.Name = "ClubGrip"
 	weld.Part0 = hand
 	weld.Part1 = handle
+	weld.C0 = hand.CFrame:ToObjectSpace(handle.CFrame)
+	weld.C1 = CFrame.identity
+	weld:SetAttribute("DefaultC0", weld.C0)
 	weld.Parent = handle
 	model.Parent = character
 end

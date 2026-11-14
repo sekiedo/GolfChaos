@@ -22,7 +22,12 @@
 	écrase la précédente joint par joint, au prorata de son poids. Mode « effets réduits » : amplitude `calm`,
 	pas de particules (fx) ; les personnages loin de la caméra ne sont pas animés.
 
-	Reste à faire (non implémenté) : réorientation du manche de club (champ `club` des animations de golf).
+	Club : pendant une animation de golf (champ `club = true`), le manche est tenu dans l'axe « centre de l'arc des
+	mains -> mains » (Kit.CLUB_PIVOT), tête vers le bas, face de frappe vers la gauche du personnage (convention
+	de Cosmetics/Catalog/Clubs : manche le long de -Y du Grip, face vers -Z). La position de la main est calculée
+	dans le repère de l'UpperTorso à partir des articulations épaule/coude/poignet qu'on vient d'écrire, donc sans
+	décalage d'une image ; le résultat est écrit dans C0 de la soudure serveur « ClubGrip » (Weld), fondu avec la
+	position de repos DefaultC0 selon le poids de l'animation.
 ]]
 
 local Players = game:GetService("Players")
@@ -67,6 +72,8 @@ type Rig = {
 	transition: { id: string, start: number }?,
 	fx: { Instance },
 	stopSent: boolean,
+	clubWeld: Weld?,
+	clubOverriding: boolean, -- C0 de la soudure du club modifié par nous (à rétablir)
 }
 
 local rigs: { [Model]: Rig } = {}
@@ -261,7 +268,74 @@ local function restore(rig: Rig)
 	rig.dirty = false
 end
 
-type Sample = { pose: { [string]: CFrame }, weight: number, calm: number }
+type Sample = { pose: { [string]: CFrame }, weight: number, calm: number, club: boolean }
+
+-- Direction (repère de l'UpperTorso) vers laquelle regarde l'axe +Z du club : la face de frappe (-Z) vise la
+-- gauche du personnage (cible à -X, voir Animations/Library/Golf.luau).
+local CLUB_SIDE = Vector3.new(1, 0, 0)
+
+local function findClubWeld(rig: Rig): Weld?
+	local weld = rig.clubWeld
+	if weld and weld.Parent then
+		return weld
+	end
+	local model = rig.character:FindFirstChild("ClubCosmetique")
+	local handle = model and model:FindFirstChild("Handle")
+	local found = handle and handle:FindFirstChild("ClubGrip")
+	if found and found:IsA("Weld") then
+		rig.clubWeld = found
+		return found
+	end
+	return nil
+end
+
+local function jointOffset(joint: Motor6D): CFrame
+	return joint.C0 * joint.Transform * joint.C1:Inverse()
+end
+
+-- Oriente le club selon `weight` (0 = position de repos, 1 = manche dans l'axe des mains).
+local function updateClub(rig: Rig, weight: number)
+	if weight <= 0.001 and not rig.clubOverriding then
+		return
+	end
+	local weld = findClubWeld(rig)
+	if not weld then
+		return
+	end
+	local stored = weld:GetAttribute("DefaultC0")
+	local default: CFrame = if typeof(stored) == "CFrame" then stored else weld.C0
+	local shoulder, elbow, wrist = rig.joints.RightShoulder, rig.joints.RightElbow, rig.joints.RightWrist
+	local hand = weld.Part0
+	local handle = weld.Part1
+	local handGrip = hand and hand:FindFirstChild("RightGripAttachment")
+	local clubGrip = handle and handle:FindFirstChild("Grip")
+	if weight <= 0.001 or not (shoulder and elbow and wrist and handGrip and clubGrip) then
+		weld.C0 = default
+		rig.clubOverriding = false
+		return
+	end
+	if not (handGrip:IsA("Attachment") and clubGrip:IsA("Attachment")) then
+		return
+	end
+
+	-- Main dans le repère de l'UpperTorso : Part1 = Part0 * C0 * Transform * C1^-1, de l'épaule jusqu'au poignet.
+	local handInTorso = jointOffset(shoulder) * jointOffset(elbow) * jointOffset(wrist)
+	local gripPosition = (handInTorso * handGrip.CFrame).Position
+	local direction = gripPosition - Animations.Kit.CLUB_PIVOT
+	if direction.Magnitude < 0.05 then
+		return -- mains sur le pivot : direction indéfinie, on garde la dernière valeur
+	end
+	local down = direction.Unit -- du pivot vers les mains : le manche continue dans ce sens
+	local yAxis = -down -- +Y du Grip pointe vers le haut du club ; -Y (le manche) suit « down »
+	local zAxis = CLUB_SIDE - yAxis * CLUB_SIDE:Dot(yAxis)
+	zAxis = if zAxis.Magnitude < 1e-3 then Vector3.zAxis else zAxis.Unit
+	local xAxis = yAxis:Cross(zAxis)
+	local gripInTorso = CFrame.fromMatrix(gripPosition, xAxis, yAxis, zAxis)
+	local handleInTorso = gripInTorso * clubGrip.CFrame:Inverse()
+	local override = handInTorso:Inverse() * handleInTorso
+	weld.C0 = default:Lerp(override, math.clamp(weight, 0, 1))
+	rig.clubOverriding = true
+end
 
 local function apply(rig: Rig, now: number, reduced: boolean)
 	for index = #rig.layers, 1, -1 do
@@ -271,6 +345,7 @@ local function apply(rig: Rig, now: number, reduced: boolean)
 	end
 	if #rig.layers == 0 then
 		restore(rig)
+		updateClub(rig, 0)
 		return
 	end
 
@@ -283,16 +358,22 @@ local function apply(rig: Rig, now: number, reduced: boolean)
 		return a.start < b.start
 	end)
 	local samples: { Sample } = {}
+	local clubWeight = 0
 	for _, layer in ordered do
 		local weight = weightOf(layer, now)
 		if weight > 0 then
 			local ok, pose = pcall(layer.def.joints, timeOf(layer, now))
 			if ok and type(pose) == "table" then
+				local holdsClub = layer.def.club == true
 				table.insert(samples, {
 					pose = pose,
 					weight = weight,
 					calm = if reduced then (layer.def.calm or 1) else 1,
+					club = holdsClub,
 				})
+				if holdsClub then
+					clubWeight = math.max(clubWeight, weight)
+				end
 			end
 		end
 	end
@@ -320,6 +401,7 @@ local function apply(rig: Rig, now: number, reduced: boolean)
 			rig.dirty = true
 		end
 	end
+	updateClub(rig, clubWeight)
 end
 
 -- Le joueur local interrompt son émote dès qu'il se déplace (le serveur reste maître de l'arrêt).
@@ -374,6 +456,8 @@ local function track(character: Model)
 		transition = nil,
 		fx = {},
 		stopSent = false,
+		clubWeld = nil,
+		clubOverriding = false,
 	}
 	rigs[character] = rig
 

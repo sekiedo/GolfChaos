@@ -27,6 +27,7 @@ local Shared = ReplicatedStorage:WaitForChild("Shared")
 local Net = require(Shared.Net)
 local Log = require(Shared.Util.Log)
 local Sounds = require(Shared.Config.Sounds)
+local Cosmetics = require(Shared.Cosmetics)
 
 local EffectsController = {}
 EffectsController.Priority = 65
@@ -369,7 +370,44 @@ function EffectsController.Init()
 	end
 end
 
+-- Effet de trou cosmétique : Golf.Holed(userId, { effectId, practice, ... }) -> Cosmetics[effectId].play(position, parent).
+-- La position est celle de la balle du joueur (Workspace.Balls, attribut OwnerUserId) à l'instant de l'événement.
+local function onHoled(userId: any, info: any)
+	if type(userId) ~= "number" or type(info) ~= "table" then
+		return
+	end
+	if info.practice == true or type(info.effectId) ~= "string" or info.effectId == "" then
+		return
+	end
+	if EffectsController.IsReduced() then
+		return
+	end
+	local def = Cosmetics.get(info.effectId)
+	if not def or def.slot ~= "HoleEffect" or type(def.play) ~= "function" then
+		return
+	end
+	local balls = workspace:FindFirstChild("Balls")
+	local position: Vector3? = nil
+	if balls then
+		for _, ball in balls:GetChildren() do
+			if ball:IsA("BasePart") and ball:GetAttribute("OwnerUserId") == userId then
+				position = ball.Position
+				break
+			end
+		end
+	end
+	if not position then
+		return
+	end
+	local play = def.play :: (Vector3, Instance) -> ()
+	local ok, err = pcall(play, position, getFolder())
+	if not ok then
+		Log.warn("Effects", "effet de trou en échec :", info.effectId, err)
+	end
+end
+
 function EffectsController.Start()
+	Net.listen("Golf.Holed", onHoled)
 	Net.listen("Effects.Play", function(effectName: any, params: any)
 		if type(effectName) == "string" then
 			EffectsController.Play(effectName, if type(params) == "table" then params else nil)

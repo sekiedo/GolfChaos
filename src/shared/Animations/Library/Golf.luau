@@ -23,7 +23,7 @@ local TAU = math.pi * 2
 -- Arc des mains (repère de l'UpperTorso)
 --------------------------------------------------------------------------------
 
-local ARC_CENTER = Vector3.new(0, 0.3, -0.35)
+local ARC_CENTER = Kit.CLUB_PIVOT -- le manche prolonge « ARC_CENTER -> mains » (voir AnimationController)
 local DIR_ADDRESS = Vector3.new(0.02, -1.1, -0.42)
 local DIR_TOP = Vector3.new(0.85, 0.62, -0.2) -- mains au-dessus de l'épaule droite
 local DIR_FINISH = Vector3.new(-0.85, 0.62, -0.2) -- mains au-dessus de l'épaule gauche
