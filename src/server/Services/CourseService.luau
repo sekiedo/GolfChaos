@@ -74,6 +74,7 @@ local SignalModule = require(Shared.Util.Signal)
 local TroveModule = require(Shared.Util.Trove)
 local Validate = require(Shared.Util.Validate)
 
+local PathMath = require(script.Parent.Parent.Course.PathMath)
 type Trove = TroveModule.Trove
 type Signal = SignalModule.Signal
 type HoleDef = Types.HoleDef
@@ -84,7 +85,7 @@ type ObstacleDef = Types.ObstacleDef
 -- Types publics
 --------------------------------------------------------------------------------
 
-export type Bounds = { min: Vector3, max: Vector3 }
+export type Bounds = PathMath.Bounds
 
 export type LobbyInfo = {
 	folder: Folder?,
@@ -105,12 +106,7 @@ export type LobbyInfo = {
 	prompts: { ProximityPrompt }?,
 }
 
-export type Zone = {
-	kind: string,
-	shape: "box" | "cylinder",
-	cframe: CFrame,
-	size: Vector3,
-}
+export type Zone = PathMath.Zone
 
 export type HoleExtras = {
 	mobilityBoxes: { Vector3 },
@@ -537,18 +533,12 @@ end
 -- Zones (dangers) et chemin
 --------------------------------------------------------------------------------
 
-local function zoneContains(zone: Zone, point: Vector3): boolean
-	local localPoint = zone.cframe:PointToObjectSpace(point)
-	local size = zone.size
-	if zone.shape == "cylinder" then
-		local radius = size.X / 2
-		return localPoint.X * localPoint.X + localPoint.Z * localPoint.Z <= radius * radius
-			and math.abs(localPoint.Y) <= size.Y / 2
-	end
-	return math.abs(localPoint.X) <= size.X / 2
-		and math.abs(localPoint.Y) <= size.Y / 2
-		and math.abs(localPoint.Z) <= size.Z / 2
-end
+local inAnyZone = PathMath.inAnyZone
+local progressAlong = PathMath.progressAlong
+local inBox = PathMath.inBox
+local vectorList = PathMath.vectorList
+local cframeList = PathMath.cframeList
+local cumulativeLengths = PathMath.cumulativeLengths
 
 local function absVector(v: Vector3): Vector3
 	return Vector3.new(math.abs(v.X), math.abs(v.Y), math.abs(v.Z))
@@ -585,79 +575,9 @@ local function collectZones(def: HoleDef, origin: Vector3, folder: Instance): { 
 	return zones
 end
 
-local function inAnyZone(zones: { Zone }, point: Vector3): boolean
-	for _, zone in zones do
-		if zoneContains(zone, point) then
-			return true
-		end
-	end
-	return false
-end
-
--- Progression (studs) du point le plus proche de la polyligne.
-local function progressAlong(points: { Vector3 }, cumulative: { number }, position: Vector3): number
-	local count = #points
-	if count == 0 then
-		return 0
-	end
-	if count == 1 then
-		return 0
-	end
-	local bestDistance = math.huge
-	local bestProgress = 0
-	for index = 1, count - 1 do
-		local a = points[index]
-		local b = points[index + 1]
-		local segment = b - a
-		local lengthSquared = segment:Dot(segment)
-		local t = 0
-		if lengthSquared > 1e-6 then
-			t = math.clamp((position - a):Dot(segment) / lengthSquared, 0, 1)
-		end
-		local closest = a + segment * t
-		local distance = (position - closest).Magnitude
-		if distance < bestDistance then
-			bestDistance = distance
-			bestProgress = cumulative[index] + math.sqrt(lengthSquared) * t
-		end
-	end
-	return bestProgress
-end
-
-local function inBox(position: Vector3, bounds: Bounds, margin: number): boolean
-	return position.X >= bounds.min.X - margin
-		and position.X <= bounds.max.X + margin
-		and position.Z >= bounds.min.Z - margin
-		and position.Z <= bounds.max.Z + margin
-end
-
 --------------------------------------------------------------------------------
 -- Lecture défensive du résultat du constructeur
 --------------------------------------------------------------------------------
-
-local function vectorList(value: any): { Vector3 }
-	local list: { Vector3 } = {}
-	if type(value) == "table" then
-		for _, item in value do
-			if Validate.isFiniteVector3(item) then
-				table.insert(list, item)
-			end
-		end
-	end
-	return list
-end
-
-local function cframeList(value: any): { CFrame }
-	local list: { CFrame } = {}
-	if type(value) == "table" then
-		for _, item in value do
-			if Validate.isFiniteCFrame(item) then
-				table.insert(list, item)
-			end
-		end
-	end
-	return list
-end
 
 local function worldPath(def: HoleDef, origin: Vector3): { Vector3 }
 	local points: { Vector3 } = {}
@@ -669,18 +589,6 @@ local function worldPath(def: HoleDef, origin: Vector3): { Vector3 }
 		end
 	end
 	return points
-end
-
-local function cumulativeLengths(points: { Vector3 }): ({ number }, number)
-	local cumulative: { number } = {}
-	local total = 0
-	for index, point in points do
-		if index > 1 then
-			total += (point - points[index - 1]).Magnitude
-		end
-		cumulative[index] = total
-	end
-	return cumulative, total
 end
 
 local function computeBounds(points: { Vector3 }, extra: { Vector3 }): Bounds
