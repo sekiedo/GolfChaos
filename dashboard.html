@@ -14,7 +14,7 @@
    ============================================================================ */
 const DATA = {
   majLe: "14/11/2026",
-  etape: { numero: 8, titre: "Objets (17) et kart-caddie (écrits, non joués)", detail: "Étapes 1 à 8 écrites et vérifiées en local. Reste : découpage des gros modules, boucle jouable, puis test dans Studio." },
+  etape: { numero: 10, titre: "Code complet, prêt pour le test Studio (jamais joué)", detail: "Étapes 1 à 10 écrites et vérifiées en local. Reste : le test dans Roblox Studio (docs/CHECKLIST_STUDIO.md), puis les 75 trous restants." },
   chiffres: [
     { valeur: "192", libelle: "fichiers exportés" },
     { valeur: "162", libelle: "fichiers Luau du jeu" },
@@ -63,14 +63,16 @@ const DATA = {
       "Étape 5 — 13 émotes : textes fr/en, EmoteService, AnimationController (tests locaux 195/198, types sans nouveau diagnostic)",
       "Étape 6 — catalogues : 21 tenues, 16 clubs, 11 balles, 6 effets de trou ; manche de club réorienté ; effet de trou branché (tests locaux 197/198)",
       "Étape 7 — écrans Boutique, Personnaliser, Défis, Émotes + ProfileController (tests locaux 205/206)",
-      "Étape 8 — ItemService + 17 objets, VehicleService (kart), InventoryController (tests locaux 217/218)"
+      "Étape 8 — ItemService + 17 objets, VehicleService (kart), InventoryController (tests locaux 217/218)",
+      "Étape 9 — découpage : Ball/Hazards, Ball/Types, Match/Types, Match/Summary, Course/PathMath",
+      "Étape 10 — VehicleController, attribut InVehicle, vérifications croisées, check-list Studio"
     ],
     encours: [
       "Passe visuelle : rendu du jeu jamais relu à l'écran (à cadrer avec l'utilisateur)"
     ],
     afaire: [
       "Vérifier en Studio le manche de club, les tenues, les effets de trou et les nouveaux écrans",
-      "Terminer la boucle jouable et la jouer en Play solo (DevBridge scenario)",
+      "Jouer la boucle complète dans Studio en suivant docs/CHECKLIST_STUDIO.md",
       "Découper les gros modules : BallService (3 035 l.), MatchService (2 725 l.), CourseService (1 850 l.)",
       "75 trous restants et validation automatique",
       "Cosmétiques restants et écrans Boutique / Personnaliser / Défis",
@@ -79,6 +81,7 @@ const DATA = {
     ]
   },
   journal: [
+    { date: "14/11/2026", titre: "Étapes 9 et 10 terminées — code prêt pour Studio", texte: "Trois gros modules allégés sans changer leur comportement, kart relié aux attributs et collisions attendus, VehicleController, vérifications croisées objets/services et check-list de test (docs/CHECKLIST_STUDIO.md). 217 tests sur 218 en local. Rien n'a été joué dans Studio : la boucle complète reste à vérifier là-bas." },
     { date: "14/11/2026", titre: "Étape 9 commencée — découpage de BallService", texte: "Détection des dangers (Ball/Hazards) et types (Ball/Types) sortis de BallService : 3 016 lignes → 2 753, comportement inchangé. 217 tests sur 218 en local. MatchService et CourseService pas encore touchés." },
     { date: "14/11/2026", titre: "Étape 8 terminée — objets et kart", texte: "ItemService (inventaire, effets, bulle, boîtes), 17 comportements d'objets, VehicleService (kart 8 places piloté par le serveur) et InventoryController (touches 1 à 4, E, manette). 217 tests sur 218 en local. Non joué dans Studio : physique du kart, projectiles, géant, invisibilité." },
     { date: "14/11/2026", titre: "Étape 7 terminée — écrans de collection", texte: "Boutique, Personnaliser, Défis et choix d'émote (touche V ou menu) branchés sur le profil (ProfileController, Data.Sync) et les remotes Shop.* / Emote.*. Aucun aperçu 3D : pastilles de couleur. 205 tests sur 206 en local. Non testé dans Studio." },

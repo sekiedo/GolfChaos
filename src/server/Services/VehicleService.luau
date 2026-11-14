@@ -144,6 +144,11 @@ local function ejectAll(cart: Cart)
 	for _, seat in allSeats(cart) do
 		local occupant = seat.Occupant
 		if occupant then
+			local rider = Players:GetPlayerFromCharacter(occupant.Parent)
+			if rider then
+				rider:SetAttribute("InVehicle", nil)
+				cartOfPlayer[rider] = nil
+			end
 			occupant.Sit = false
 		end
 		local weld = seat:FindFirstChild("SeatWeld")
@@ -258,6 +263,10 @@ local function build(owner: Player, cframe: CFrame): Cart
 	model:SetAttribute("CartId", cartCounter)
 	model:SetAttribute("OwnerUserId", owner.UserId)
 	model.Parent = folder()
+	local collision = services.get("CollisionService")
+	if collision and type(collision.AssignModel) == "function" then
+		pcall(collision.AssignModel, model, "Vehicles", true)
+	end
 	chassis:SetNetworkOwner(nil)
 
 	local cart: Cart = {
@@ -415,6 +424,7 @@ local function connectSeat(cart: Cart, seat: any)
 		local player = occupantPlayer(seat)
 		if player then
 			cartOfPlayer[player] = cart
+			player:SetAttribute("InVehicle", true)
 			pushState(cart, player, seat)
 		end
 		-- Joueur descendu : on retrouve qui n'est plus assis ici.
@@ -426,10 +436,9 @@ local function connectSeat(cart: Cart, seat: any)
 						stillSeated = true
 					end
 				end
-				if not stillSeated and owner ~= cart.owner then
+				if not stillSeated then
 					cartOfPlayer[owner] = nil
-					pushState(cart, owner, nil)
-				elseif not stillSeated then
+					owner:SetAttribute("InVehicle", nil)
 					pushState(cart, owner, nil)
 				end
 			end
@@ -498,6 +507,8 @@ function VehicleService.EjectPlayer(player: Player): boolean
 		return false
 	end
 	local seat = humanoid.SeatPart
+	player:SetAttribute("InVehicle", nil)
+	cartOfPlayer[player] = nil
 	humanoid.Sit = false
 	local weld = seat:FindFirstChild("SeatWeld")
 	if weld then
