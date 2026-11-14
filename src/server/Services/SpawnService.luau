@@ -73,7 +73,7 @@ SpawnService.Priority = 55
 SpawnService.Spawned = SignalModule.new() :: Signal -- (player, character, where, reason)
 SpawnService.Fell = SignalModule.new() :: Signal -- (player, position)
 
-local servicesFolder = script.Parent
+local Services = require(script.Parent.Parent.Util.Services)
 local states: { [Player]: PlayerState } = {}
 local resolver: ((Player) -> CFrame?)? = nil
 local padCursor = 0
@@ -86,43 +86,8 @@ local started = false
 -- Services facultatifs (chargés à la demande : aucun cycle de require au démarrage)
 --------------------------------------------------------------------------------
 
-local serviceCache: { [string]: { module: any?, checkedAt: number } } = {}
-
-local function optionalService(name: string): any?
-	local entry = serviceCache[name]
-	local time = os.clock()
-	if entry and (entry.module ~= nil or time - entry.checkedAt < 5) then
-		return entry.module
-	end
-	local module = servicesFolder:FindFirstChild(name)
-	local loaded: any? = nil
-	if module and module:IsA("ModuleScript") then
-		local ok, result = pcall(require, module)
-		if ok and type(result) == "table" then
-			loaded = result
-		end
-	end
-	serviceCache[name] = { module = loaded, checkedAt = time }
-	return loaded
-end
-
--- Appelle service.method(...) protégé ; (false, nil) si le service ou la méthode manque ou échoue.
-local function callService(name: string, method: string, ...: any): (boolean, any)
-	local service = optionalService(name)
-	if not service then
-		return false, nil
-	end
-	local fn = service[method]
-	if type(fn) ~= "function" then
-		return false, nil
-	end
-	local ok, result = pcall(fn, ...)
-	if not ok then
-		Log.warn(LOG_TAG, name .. "." .. method .. " :", result)
-		return false, nil
-	end
-	return true, result
-end
+-- service.method(...) protégé ; (false, nil) si le service ou la méthode manque ou échoue.
+local callService = Services.scope(LOG_TAG).call
 
 --------------------------------------------------------------------------------
 -- Outils

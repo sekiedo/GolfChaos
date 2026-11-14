@@ -255,16 +255,8 @@ local function ballTag(): string
 	return if type(tag) == "string" then tag else "GolfBall"
 end
 
-local function service(name: string): any?
-	local serverRoot = script.Parent and script.Parent.Parent
-	local folder = serverRoot and serverRoot:FindFirstChild("Services")
-	local module = folder and folder:FindFirstChild(name)
-	if not module or not module:IsA("ModuleScript") then
-		return nil
-	end
-	local ok, result = pcall(require, module)
-	return if ok and type(result) == "table" then result else nil
-end
+-- Service voisin chargé à la demande (Server.Util.Services) : aucun cycle de require au chargement.
+local service = require(script.Parent.Parent.Util.Services).get
 
 local netCache: any = nil
 local function net(): any?

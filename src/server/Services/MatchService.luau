@@ -165,7 +165,7 @@ MatchService.HoleEnded = SignalModule.new() :: Signal -- (results: { HoleResult 
 MatchService.MatchEnded = SignalModule.new() :: Signal -- (summary)
 MatchService.PlayerFinishedHole = SignalModule.new() :: Signal -- (player, result)
 
-local servicesFolder = script.Parent
+local Services = require(script.Parent.Parent.Util.Services)
 local phase: Phase = "Lobby"
 local phaseToken = 0
 local phaseTrove: Trove = TroveModule.new()
@@ -183,58 +183,18 @@ local rng = Random.new()
 -- Outils
 --------------------------------------------------------------------------------
 
-local serviceCache: { [string]: { module: any?, checkedAt: number } } = {}
-
-local function optionalService(name: string): any?
-	local entry = serviceCache[name]
-	local time = os.clock()
-	if entry and (entry.module ~= nil or time - entry.checkedAt < 5) then
-		return entry.module
-	end
-	local module = servicesFolder:FindFirstChild(name)
-	local loaded: any? = nil
-	if module and module:IsA("ModuleScript") then
-		local ok, result = pcall(require, module)
-		if ok and type(result) == "table" then
-			loaded = result
-		end
-	end
-	serviceCache[name] = { module = loaded, checkedAt = time }
-	return loaded
-end
-
+local services = Services.scope(LOG_TAG)
+local optionalService = services.get
 -- service.method(...) protégé : (false, nil) si absent ou en erreur (journalisé).
-local function callService(name: string, method: string, ...: any): (boolean, any)
-	local service = optionalService(name)
-	if not service then
-		return false, nil
-	end
-	local fn = service[method]
-	if type(fn) ~= "function" then
-		return false, nil
-	end
-	local ok, result = pcall(fn, ...)
-	if not ok then
-		Log.warn(LOG_TAG, name .. "." .. method .. " :", result)
-		return false, nil
-	end
-	return true, result
-end
+local callService = services.call
 
+-- Abonnement protégé à un signal d'un autre service ; un signal absent est signalé (la partie en dépend).
 local function connectSignal(serviceName: string, signalName: string, handler: (...any) -> ()): boolean
-	local service = optionalService(serviceName)
-	local signal = service and service[signalName]
-	if type(signal) == "table" and type(signal.Connect) == "function" then
-		signal:Connect(function(...)
-			local ok, err = pcall(handler, ...)
-			if not ok then
-				Log.error(LOG_TAG, serviceName .. "." .. signalName, err)
-			end
-		end)
-		return true
+	local connected = services.connect(serviceName, signalName, handler)
+	if not connected then
+		Log.warn(LOG_TAG, "signal absent :", serviceName .. "." .. signalName)
 	end
-	Log.warn(LOG_TAG, "signal absent :", serviceName .. "." .. signalName)
-	return false
+	return connected
 end
 
 local function now(): number

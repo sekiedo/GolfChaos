@@ -32,7 +32,8 @@ local AchievementService = {}
 AchievementService.Priority = 45
 AchievementService.Completed = Signal.new()
 
-local servicesFolder = script.Parent
+local Services = require(script.Parent.Parent.Util.Services)
+local services = Services.scope("Achievements")
 
 -- Index : statistique / ensemble / événement -> défis concernés.
 local byStat: { [string]: { AchievementDef } } = {}
@@ -51,17 +52,8 @@ for _, def in Achievements.List do
 	end
 end
 
-local function getService(name: string): any?
-	local module = servicesFolder:FindFirstChild(name)
-	if not module or not module:IsA("ModuleScript") then
-		return nil
-	end
-	local ok, result = pcall(require, module)
-	return if ok then result else nil
-end
-
 local function dataService(): any?
-	return getService("PlayerDataService")
+	return services.get("PlayerDataService")
 end
 
 local function isFiniteNumber(value: any): boolean
@@ -288,21 +280,7 @@ local function onItemUsed(player: Player, itemId: any)
 	AchievementService.AddToSet(player, "itemsUsedSet", itemId)
 end
 
-local function connect(serviceName: string, signalName: string, handler: (...any) -> ())
-	local service = getService(serviceName)
-	local signal = service and service[signalName]
-	if type(signal) == "table" and type(signal.Connect) == "function" then
-		signal:Connect(function(...)
-			local ok, err = pcall(handler, ...)
-			if not ok then
-				Log.warn("Achievements", serviceName .. "." .. signalName, err)
-			end
-		end)
-		return true
-	end
-	Log.debug("Achievements", "signal absent :", serviceName .. "." .. signalName)
-	return false
-end
+local connect = services.connect
 
 function AchievementService.Init()
 	-- Rien à créer : les remotes sont déclarés dans Net/Remotes/Progress.luau.

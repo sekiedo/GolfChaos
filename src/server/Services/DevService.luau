@@ -27,17 +27,11 @@ local Log = require(ReplicatedStorage.Shared.Util.Log)
 local DevService = {}
 DevService.Priority = 90
 
+local Services = require(script.Parent.Parent.Util.Services)
 local servicesFolder = script.Parent
 local commands: { [string]: (...any) -> any } = {}
 
-local function getService(name: string): any?
-	local module = servicesFolder:FindFirstChild(name)
-	if not module or not module:IsA("ModuleScript") then
-		return nil
-	end
-	local ok, result = pcall(require, module)
-	return if ok then result else nil
-end
+local getService = Services.get
 
 local function serialize(value: any, depth: number?): any
 	local level = depth or 0

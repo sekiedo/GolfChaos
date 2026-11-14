@@ -14,7 +14,7 @@
    ============================================================================ */
 const DATA = {
   majLe: "14/11/2026",
-  etape: { numero: 0, titre: "Mise en place du suivi", detail: "Lecture du document de transfert et création du tableau de bord. Aucun fichier du jeu n'a encore été modifié." },
+  etape: { numero: 2, titre: "PlayerDataService et sauvegarde", detail: "Étape 1 terminée (module Services commun). En cours : écriture des modules de sauvegarde absents — ProfileStore, MemoryAdapter, Migrations, PlayerDataService." },
   chiffres: [
     { valeur: "192", libelle: "fichiers exportés" },
     { valeur: "162", libelle: "fichiers Luau du jeu" },
@@ -52,14 +52,16 @@ const DATA = {
     terminees: [
       "Lecture complète de 00_LISEZMOI_TRANSFERT.md (architecture, état, annexes A à E)",
       "Vérification de la présence des sources sur disque (src/, docs/, scripts/, legacy/)",
-      "Création de dashboard.html"
+      "Création de dashboard.html",
+      "Dépôt Git local (branche dev/reprise) et outil de vérification scripts/verifier.sh",
+      "Étape 1 — module commun Server.Util.Services à la place des 11 copies (−253 lignes)"
     ],
     encours: [
-      "Plan de la première amélioration (en attente de ta validation)"
+      "Étape 2 — PlayerDataService, ProfileStore, MemoryAdapter, Migrations"
     ],
     afaire: [
-      "Vérifier les 5 points d'intégration signalés au §7 du document",
-      "Écrire les modules absents : PlayerDataService, ProfileStore, MemoryAdapter, Migrations",
+      "Étape 3 — textes manquants shop.err.* (fr et en)",
+      "Vérifier les autres points d'intégration signalés au §7 du document",
       "Terminer la boucle jouable et la jouer en Play solo (DevBridge scenario)",
       "Découper les gros modules : BallService (3 035 l.), MatchService (2 725 l.), CourseService (1 850 l.)",
       "ItemService + 17 comportements d'objets",
@@ -71,6 +73,8 @@ const DATA = {
     ]
   },
   journal: [
+    { date: "14/11/2026", titre: "Étape 1 terminée — module Services", texte: "Nouveau module Server.Util.Services (get, call, connect) utilisé par 11 fichiers serveur ; 253 lignes dupliquées supprimées ; spec de 8 tests ajoutée. Construction Rojo OK, analyse de types sans nouveau diagnostic. Non testé dans Studio." },
+    { date: "14/11/2026", titre: "Outils de vérification", texte: "Dépôt Git créé (branche dev/reprise). scripts/verifier.sh construit la place avec Rojo 7.7.1 et compare l'analyse de types à une référence de 601 diagnostics d'origine." },
     { date: "14/11/2026", titre: "Plan de l'étape 1 proposé", texte: "Accès aux services centralisé dans un seul module (Server.Util.Services) à la place des 11 copies réparties dans les services. En attente de validation ; aucun fichier du jeu modifié." },
     { date: "14/11/2026", titre: "Constats de l'analyse du code", texte: "Les 12 clés de texte shop.err.* utilisées par CosmeticService n'existent dans aucun fichier de Locale (ni fr ni en). La fonction de recherche d'un service est recopiée dans 11 fichiers serveur, sous 3 variantes." },
     { date: "14/11/2026", titre: "Étape 0 — suivi en place", texte: "Création de dashboard.html et ajout de la section « Journal de reprise » dans 00_LISEZMOI_TRANSFERT.md. Aucun fichier du jeu modifié." },

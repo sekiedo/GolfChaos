@@ -139,8 +139,7 @@ local shieldHandler: ShieldHandler? = nil
 local lineOfSightParams: RaycastParams? = nil
 local initialized = false
 
-type ServiceCacheEntry = { module: any?, checkedAt: number }
-local serviceCache: { [string]: ServiceCacheEntry } = {}
+local Services = require(script.Parent.Parent.Util.Services)
 
 local function now(): number
 	return workspace:GetServerTimeNow()
@@ -151,23 +150,7 @@ local function isPlayer(value: any): boolean
 end
 
 -- Service facultatif (chargé à la demande, sans cycle de require au démarrage) ; nil s'il n'existe pas.
-local function optionalService(name: string): any?
-	local entry = serviceCache[name]
-	local time = os.clock()
-	if entry and (entry.module ~= nil or time - entry.checkedAt < 5) then
-		return entry.module
-	end
-	local module = script.Parent:FindFirstChild(name)
-	local loaded: any? = nil
-	if module and module:IsA("ModuleScript") then
-		local ok, result = pcall(require, module)
-		if ok and type(result) == "table" then
-			loaded = result
-		end
-	end
-	serviceCache[name] = { module = loaded, checkedAt = time }
-	return loaded
-end
+local optionalService = Services.get
 
 local function cancelThread(thread: thread?)
 	if thread and thread ~= coroutine.running() and coroutine.status(thread) ~= "dead" then

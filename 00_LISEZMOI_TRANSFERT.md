@@ -15,6 +15,12 @@
 | Étape | Date | Contenu | Fichiers du jeu modifiés | Vérification |
 | --- | --- | --- | --- | --- |
 | 0 | 14/11/2026 | Lecture du document, création de `dashboard.html`, ajout de cette section | aucun | sans objet |
+| 1 | 14/11/2026 | Dépôt Git local (branche `dev/reprise`). Outil de vérification `scripts/verifier.sh` (construction Rojo + analyse de types `luau-lsp`, comparée à une référence). Module unique `Server.Util.Services` (`get` / `scope(tag).call` / `.connect`) à la place des 11 copies ; spec `Services.spec` (8 tests) | `Server/Util/Services` (nouveau), `AchievementService`, `BallService`, `CombatService`, `CosmeticService`, `CourseService`, `DevService`, `LobbyService`, `MatchService`, `RewardService`, `SpawnService`, `Course/Obstacles` (−253 lignes, +37) | Construction Rojo OK ; analyse de types : aucun nouveau diagnostic hors bruit `pcall` déjà présent ailleurs. **Non testé dans Studio** (lancer `Runner.run("Services")` puis un Play solo) |
+
+**Vérification locale (sans Studio)** : `bash scripts/verifier.sh` construit la place (`build/GolfChaos_src.rbxlx`) et liste
+les diagnostics de types **nouveaux** par rapport à `build/analyse_reference.txt` (601 diagnostics d'origine, surtout du
+bruit de typage strict). Outils dans `tools/` (non versionnés) : `rojo.exe` (via `scripts/install-tools.ps1`),
+`luau-lsp.exe` et `globalTypes.d.luau` (dépôt GitHub `JohnnyMorganz/luau-lsp`). Cela **ne remplace pas** un test en jeu.
 
 **Constats à la lecture (non corrigés à ce stade) :**
 
@@ -34,8 +40,10 @@
 - Formes `PlayerFinishedHole` (`finished`, `strokes`, `par`…) et `MatchEnded` lues par `RewardService` : cohérentes avec
   ce qu'émet `MatchService` à la lecture (non vérifié en jeu).
 
-**Étape suivante (proposée, en attente de validation) :** étape 1 — module unique `Server.Util.Services`
-(`get` / `call` / `connect`) remplaçant les 11 copies, avec sa spec de test. Aucun fichier du jeu modifié à ce stade.
+- Un fichier `rojo.exe` (Rojo 7.4.4, daté d'août 2024) est présent à la racine sans faire partie de l'export ni des
+  outils installés par la reprise (`tools/rojo.exe` = 7.7.1) : laissé en place, ignoré par Git.
+
+**Étape en cours :** voir la dernière ligne du tableau ci-dessus et `dashboard.html`.
 
 ## 0. À lire en premier (nouvel agent)
 
@@ -167,7 +175,8 @@ documents → prototype d'origine (`legacy/prototype-etape1`, conservé pour ré
 ### 4.1 Règles générales
 
 - **Aucun `require` circulaire** : un service obtient un autre service paresseusement
-  (`pcall(require, script.Parent.<Nom>)` dans une fonction) ou s'abonne à ses `Signal`. Un service absent est toléré
+  par `Server.Util.Services` (`Services.get("<Nom>")`, `Services.scope(tag).call/connect` — depuis l'étape 1 de la
+  reprise ; ne plus recopier de `pcall(require, …)` local) ou s'abonne à ses `Signal`. Un service absent est toléré
   (dégradation propre, journal), ce qui permet de livrer les systèmes un par un.
 - **Réseau** : seul `Shared.Net` crée des remotes (`Net.on` = un seul gestionnaire serveur par remote ;
   `Net.fire/fireAll/fireList/fireAllExcept` ; client `Net.send/listen/invoke`). Toute intention de jeu transporte le

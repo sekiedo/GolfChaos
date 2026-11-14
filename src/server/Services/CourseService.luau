@@ -366,19 +366,8 @@ local function configModule(name: string): any?
 	return requireOptional(Shared:FindFirstChild("Config"), name)
 end
 
--- Service voisin (chargé à la demande pour éviter tout cycle de require). Pas de cache des échecs.
-local function service(name: string): any?
-	local folder = script.Parent
-	local module = folder and folder:FindFirstChild(name)
-	if not module or not module:IsA("ModuleScript") or module == script then
-		return nil
-	end
-	local ok, result = pcall(require, module)
-	if ok and type(result) == "table" then
-		return result
-	end
-	return nil
-end
+-- Service voisin chargé à la demande (Server.Util.Services) : aucun cycle de require au chargement.
+local service = require(script.Parent.Parent.Util.Services).get
 
 local function net(): any?
 	if netModule == nil then

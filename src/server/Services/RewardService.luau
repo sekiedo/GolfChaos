@@ -29,7 +29,8 @@ local RewardService = {}
 RewardService.Priority = 50
 RewardService.MatchRewarded = Signal.new()
 
-local servicesFolder = script.Parent
+local Services = require(script.Parent.Parent.Util.Services)
+local services = Services.scope("Rewards")
 
 type PlayerMatchStats = {
 	activeRounds: { [number]: boolean },
@@ -45,14 +46,7 @@ local currentMatchId: string? = nil
 local statsByUser: { [number]: PlayerMatchStats } = {}
 local processed: { [string]: boolean } = {}
 
-local function getService(name: string): any?
-	local module = servicesFolder:FindFirstChild(name)
-	if not module or not module:IsA("ModuleScript") then
-		return nil
-	end
-	local ok, result = pcall(require, module)
-	return if ok then result else nil
-end
+local getService = services.get
 
 local function isFiniteNumber(value: any): boolean
 	return type(value) == "number" and value == value and value ~= math.huge and value ~= -math.huge
@@ -268,21 +262,7 @@ function RewardService.GrantOnce(player: Player, rewardId: string, amount: numbe
 	return ok == true
 end
 
-local function connect(serviceName: string, signalName: string, handler: (...any) -> ()): boolean
-	local service = getService(serviceName)
-	local signal = service and service[signalName]
-	if type(signal) == "table" and type(signal.Connect) == "function" then
-		signal:Connect(function(...)
-			local ok, err = pcall(handler, ...)
-			if not ok then
-				Log.warn("Rewards", serviceName .. "." .. signalName, err)
-			end
-		end)
-		return true
-	end
-	Log.debug("Rewards", "signal absent :", serviceName .. "." .. signalName)
-	return false
-end
+local connect = services.connect
 
 function RewardService.Init() end
 

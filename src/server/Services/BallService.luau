@@ -237,7 +237,6 @@ type BallData = {
 	errors: number,
 }
 
-type ServiceCacheEntry = { module: any?, checkedAt: number }
 
 --------------------------------------------------------------------------------
 -- Réglages
@@ -268,7 +267,6 @@ local MAX_AIM_BLOCK_SECONDS = 30 -- [repli] borne de CancelAim(..., blockSeconds
 local MAX_FREEZE_SECONDS = 30 -- [repli] borne de FreezeBall
 local AIM_CHARGE_GRACE = 1 -- [repli] jauge tenue plus de Shot.MaxSwingTime + 1 s : visée annulée
 local RUNTIME_CACHE_TIME = 0.5 -- [repli] période de relecture de CourseService.GetCurrent() (s)
-local SERVICE_RETRY_TIME = 5 -- [repli] nouvel essai de chargement d'un service facultatif absent (s)
 local MAX_SIM_BALLS = 16 -- [repli] balles de simulation simultanées
 local SIM_DEFAULT_TIMEOUT = 20 -- [repli] StepSim : attente par défaut (s)
 local SIM_MAX_TIMEOUT = 120 -- [repli] StepSim : attente maximale (s)
@@ -333,7 +331,6 @@ local swingTokens: { [Player]: number } = {}
 local playerTroves: { [Player]: Trove } = {}
 local characterList: { Instance } = {}
 local hazardRoots: { Instance } = {}
-local serviceCache: { [string]: ServiceCacheEntry } = {}
 
 local serviceTrove: Trove? = nil
 local ballsFolder: Folder? = nil
@@ -394,23 +391,7 @@ local function getRandom(): Random
 end
 
 -- Service facultatif chargé à la demande (aucun cycle de require au démarrage) ; nil s'il n'existe pas.
-local function optionalService(name: string): any?
-	local entry = serviceCache[name]
-	local clock = os.clock()
-	if entry and (entry.module ~= nil or clock - entry.checkedAt < SERVICE_RETRY_TIME) then
-		return entry.module
-	end
-	local module = script.Parent:FindFirstChild(name)
-	local loaded: any? = nil
-	if module and module:IsA("ModuleScript") then
-		local ok, result = pcall(require, module)
-		if ok and type(result) == "table" then
-			loaded = result
-		end
-	end
-	serviceCache[name] = { module = loaded, checkedAt = clock }
-	return loaded
-end
+local optionalService = require(script.Parent.Parent.Util.Services).get
 
 -- MatchSettings décodés depuis GameState.SettingsJson (cache invalidé à chaque changement).
 local function readSettings(): { [string]: any }?

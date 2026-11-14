@@ -48,17 +48,10 @@ local MAX_EMOTES = 8
 local LOADOUT_COUNT = 3
 local COSMETIC_TAG = "GolfChaosCosmetic"
 
-local servicesFolder = script.Parent
+local Services = require(script.Parent.Parent.Util.Services)
 local characterTroves: { [Player]: any } = {}
 
-local function getService(name: string): any?
-	local module = servicesFolder:FindFirstChild(name)
-	if not module or not module:IsA("ModuleScript") then
-		return nil
-	end
-	local ok, result = pcall(require, module)
-	return if ok then result else nil
-end
+local getService = Services.get
 
 local function isFiniteNumber(value: any): boolean
 	return type(value) == "number" and value == value and value ~= math.huge and value ~= -math.huge

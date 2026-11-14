@@ -80,7 +80,7 @@ LobbyService.ClientReady = SignalModule.new() :: Signal -- (player)
 LobbyService.SpectatorChanged = SignalModule.new() :: Signal -- (player, isSpectator: boolean)
 LobbyService.TrainingChanged = SignalModule.new() :: Signal -- (player, kind: string?)
 
-local servicesFolder = script.Parent
+local Services = require(script.Parent.Parent.Util.Services)
 
 local joinOrder: { Player } = {}
 local host: Player? = nil
@@ -102,42 +102,7 @@ local preparePendingUntil = 0
 -- Outils
 --------------------------------------------------------------------------------
 
-local serviceCache: { [string]: { module: any?, checkedAt: number } } = {}
-
-local function optionalService(name: string): any?
-	local entry = serviceCache[name]
-	local time = os.clock()
-	if entry and (entry.module ~= nil or time - entry.checkedAt < 5) then
-		return entry.module
-	end
-	local module = servicesFolder:FindFirstChild(name)
-	local loaded: any? = nil
-	if module and module:IsA("ModuleScript") then
-		local ok, result = pcall(require, module)
-		if ok and type(result) == "table" then
-			loaded = result
-		end
-	end
-	serviceCache[name] = { module = loaded, checkedAt = time }
-	return loaded
-end
-
-local function callService(name: string, method: string, ...: any): (boolean, any)
-	local service = optionalService(name)
-	if not service then
-		return false, nil
-	end
-	local fn = service[method]
-	if type(fn) ~= "function" then
-		return false, nil
-	end
-	local ok, result = pcall(fn, ...)
-	if not ok then
-		Log.warn(LOG_TAG, name .. "." .. method .. " :", result)
-		return false, nil
-	end
-	return true, result
-end
+local callService = Services.scope(LOG_TAG).call
 
 local function isPlayer(value: any): boolean
 	return typeof(value) == "Instance" and value:IsA("Player")
