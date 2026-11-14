@@ -292,20 +292,35 @@ task = {
 }
 task.defer = task.spawn
 
+-- Générateur propre à chaque instance (xorshift32) : deux instances de même graine donnent la même suite.
 Random = {
 	new = function(seed)
-		if seed then
-			math.randomseed(seed)
+		local state = if seed then (math.floor(math.abs(seed)) % 4294967291) + 1 else (math.floor(math.random() * 4294967290) + 1)
+		local function nextRaw()
+			state = bit32.bxor(state, bit32.lshift(state, 13))
+			state = bit32.bxor(state, bit32.rshift(state, 17))
+			state = bit32.bxor(state, bit32.lshift(state, 5))
+			state = state % 4294967296
+			if state == 0 then
+				state = 1
+			end
+			return state
+		end
+		for _ = 1, 8 do
+			nextRaw()
+		end
+		local function unit()
+			return (nextRaw() - 1) / 4294967295
 		end
 		local random = {}
 		function random.NextNumber(_self, min, max)
 			if min then
-				return min + math.random() * (max - min)
+				return min + unit() * (max - min)
 			end
-			return math.random()
+			return unit()
 		end
 		function random.NextInteger(_self, min, max)
-			return math.random(min, max)
+			return min + math.floor(unit() * (max - min + 1))
 		end
 		function random.Clone(self)
 			return self
