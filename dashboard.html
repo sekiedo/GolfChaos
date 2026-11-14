@@ -14,13 +14,13 @@
    ============================================================================ */
 const DATA = {
   majLe: "14/11/2026",
-  etape: { numero: 3, titre: "Textes manquants de la boutique", detail: "Étapes 1 (module Services) et 2 (sauvegarde complète) terminées. En cours : clés shop.err.* en français et en anglais." },
+  etape: { numero: 4, titre: "Audit des erreurs de types réelles", detail: "Étapes 1 à 3 terminées (module Services, sauvegarde, textes). En cours : tri des 601 diagnostics d'origine pour corriger les vrais bugs (valeurs nil, champs inexistants, appels invalides)." },
   chiffres: [
     { valeur: "192", libelle: "fichiers exportés" },
     { valeur: "162", libelle: "fichiers Luau du jeu" },
     { valeur: "54 951", libelle: "lignes de Luau" },
     { valeur: "75 / 77", libelle: "tests unitaires (Studio, 14/11)" },
-    { valeur: "183 / 191", libelle: "tests exécutés en local" },
+    { valeur: "195 / 198", libelle: "tests exécutés en local" },
     { valeur: "63", libelle: "remotes typés" },
     { valeur: "6 / 81", libelle: "trous commencés" }
   ],
@@ -28,7 +28,7 @@ const DATA = {
     { nom: "Démarrage serveur / client", fichiers: "Server, Client", elements: ["teste"] },
     { nom: "Réseau typé + limites de débit", fichiers: "Shared.Net, Net.Remotes.*", elements: ["teste"] },
     { nom: "Utilitaires", fichiers: "Signal, Trove, Validate, Log, GameState", elements: ["teste"] },
-    { nom: "Textes FR / EN", fichiers: "Shared.Locale", elements: ["teste", "ecrit"] },
+    { nom: "Textes FR / EN", fichiers: "Shared.Locale — 1 098 clés par langue, boutique et cosmétiques inclus", elements: ["teste", "ecrit"] },
     { nom: "Physique de balle (simulation pure)", fichiers: "Logic.BallMath, Config.Gameplay", elements: ["teste"] },
     { nom: "Service de balle (240 Hz)", fichiers: "Services.BallService — 3 035 lignes", elements: ["ecrit"] },
     { nom: "Combat, déplacements, collisions", fichiers: "CombatService, MovementService, CollisionService, NetworkValidation", elements: ["ecrit"] },
@@ -36,7 +36,7 @@ const DATA = {
     { nom: "Effets visuels et sons", fichiers: "EffectsController, Effects.Core, Config.Sounds", elements: ["ecrit"] },
     { nom: "Objets (17)", fichiers: "Config.Items, ItemOdds · ItemService à écrire", elements: ["teste", "afaire", "afaire"] },
     { nom: "Progression et économie", fichiers: "Achievements, Rewards, AchievementService, RewardService", elements: ["teste", "ecrit"] },
-    { nom: "Cosmétiques", fichiers: "Shared.Cosmetics, CosmeticService, catalogues", elements: ["ecrit", "ecrit", "encours", "afaire"] },
+    { nom: "Cosmétiques", fichiers: "Shared.Cosmetics, CosmeticService, 52 objets nommés · 58 à créer", elements: ["ecrit", "ecrit", "ecrit", "afaire"] },
     { nom: "Sauvegarde", fichiers: "Schema, DataStoreAdapter, ProfileStore, ProfileOps, PlayerDataService", elements: ["ecrit", "ecrit", "ecrit", "ecrit"] },
     { nom: "Trous : format, validateur, constructeur", fichiers: "HoleValidator, HoleBuilder, Props, Data.Holes", elements: ["encours"] },
     { nom: "Parcours et accueil", fichiers: "CourseService, Obstacles, LobbyBuilder", elements: ["encours"] },
@@ -57,13 +57,14 @@ const DATA = {
       "Dépôt Git local (branche dev/reprise) et outil de vérification scripts/verifier.sh",
       "Étape 1 — module commun Server.Util.Services à la place des 11 copies (−253 lignes)",
       "Étape 2 — sauvegarde : PlayerDataService, ProfileStore, ProfileOps, MemoryAdapter, Migrations (20 tests verts en local)",
-      "Banc d'essai local scripts/essais-locaux.sh (exécute les tests sans Studio)"
+      "Banc d'essai local scripts/essais-locaux.sh (exécute les tests sans Studio)",
+      "Étape 3 — textes shop.err.* et noms des 52 cosmétiques, en français et en anglais"
     ],
     encours: [
-      "Étape 3 — textes manquants shop.err.* (fr et en)"
+      "Étape 4 — audit des erreurs de types réelles dans le code existant"
     ],
     afaire: [
-      "Vérifier les autres points d'intégration signalés au §7 du document",
+      "Écrire les modules absents : EmoteService, AnimationController",
       "Terminer la boucle jouable et la jouer en Play solo (DevBridge scenario)",
       "Découper les gros modules : BallService (3 035 l.), MatchService (2 725 l.), CourseService (1 850 l.)",
       "ItemService + 17 comportements d'objets",
@@ -75,6 +76,7 @@ const DATA = {
     ]
   },
   journal: [
+    { date: "14/11/2026", titre: "Étape 3 terminée — textes manquants", texte: "Ajout des 11 messages de refus de la boutique (shop.err.*) et des noms, descriptions et couleurs des 52 cosmétiques existants, en français et en anglais (218 clés par langue). Le test des noms traduits, en échec à l'export, passe. Le script de vérification signale maintenant toute clé de texte absente." },
     { date: "14/11/2026", titre: "Étape 2 terminée — sauvegarde", texte: "Six modules écrits : Config.Data, Migrations, MemoryAdapter, ProfileStore (verrou de session), ProfileOps (transactions tout-ou-rien) et PlayerDataService. Un chargement en échec n'écrit jamais rien ; le mode mémoire est signalé. 20 tests verts en local. Correctif : le record Solo va dans data.bestSolo. Non testé dans Studio." },
     { date: "14/11/2026", titre: "Banc d'essai local", texte: "scripts/essais-locaux.sh exécute les specs avec l'interpréteur Luau et une émulation minimale de Roblox : 183 tests verts sur 191 (les 8 échecs viennent de l'émulation : pas de CFrame, aléatoire différent)." },
     { date: "14/11/2026", titre: "Étape 1 terminée — module Services", texte: "Nouveau module Server.Util.Services (get, call, connect) utilisé par 11 fichiers serveur ; 253 lignes dupliquées supprimées ; spec de 8 tests ajoutée. Construction Rojo OK, analyse de types sans nouveau diagnostic. Non testé dans Studio." },

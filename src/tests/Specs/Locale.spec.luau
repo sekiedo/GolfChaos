@@ -16,6 +16,18 @@ return function(t)
 			t.expect(Locale.missingKeys()).toContain(key)
 		end)
 
+		t.it("traduit chaque raison de refus de la boutique (CosmeticService)", function()
+			local reasons = {
+				"profile", "unknown", "owned", "notOwned", "coins", "locked", "slot", "variant", "emotesFull", "loadout",
+				"emptyLoadout",
+			}
+			for _, reason in reasons do
+				local key = "shop.err." .. reason
+				t.expect(Locale.has(key, "fr")).toBe(true)
+				t.expect(Locale.has(key, "en")).toBe(true)
+			end
+		end)
+
 		t.it("a une traduction anglaise pour chaque clé française", function()
 			local untranslated = Locale.untranslatedKeys("en")
 			if #untranslated > 0 then

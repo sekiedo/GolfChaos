@@ -359,6 +359,194 @@ Vector3 = {
 	zAxis = v3(0, 0, 1),
 }
 
+-- CFrame (position + matrice de rotation 3x3, lignes m11..m33) ------------------
+local CF = {}
+local function cf(px, py, pz, m11, m12, m13, m21, m22, m23, m31, m32, m33)
+	return setmetatable({
+		X = px, Y = py, Z = pz,
+		m = { m11 or 1, m12 or 0, m13 or 0, m21 or 0, m22 or 1, m23 or 0, m31 or 0, m32 or 0, m33 or 1 },
+		_isCFrame = true,
+	}, CF)
+end
+local function rotate(m, x, y, z)
+	return m[1] * x + m[2] * y + m[3] * z, m[4] * x + m[5] * y + m[6] * z, m[7] * x + m[8] * y + m[9] * z
+end
+local function mulRotation(a, b)
+	local out = {}
+	for row = 0, 2 do
+		for col = 1, 3 do
+			out[row * 3 + col] = a[row * 3 + 1] * b[col] + a[row * 3 + 2] * b[col + 3] + a[row * 3 + 3] * b[col + 6]
+		end
+	end
+	return out
+end
+local function fromRotation(px, py, pz, m)
+	return cf(px, py, pz, m[1], m[2], m[3], m[4], m[5], m[6], m[7], m[8], m[9])
+end
+local function rotX(a)
+	local c, s = math.cos(a), math.sin(a)
+	return { 1, 0, 0, 0, c, -s, 0, s, c }
+end
+local function rotY(a)
+	local c, s = math.cos(a), math.sin(a)
+	return { c, 0, s, 0, 1, 0, -s, 0, c }
+end
+local function rotZ(a)
+	local c, s = math.cos(a), math.sin(a)
+	return { c, -s, 0, s, c, 0, 0, 0, 1 }
+end
+local function lookAt(eye, target, up)
+	local look = (target - eye)
+	if look.Magnitude < 1e-9 then
+		return cf(eye.X, eye.Y, eye.Z)
+	end
+	look = look.Unit
+	local right = look:Cross(up or v3(0, 1, 0))
+	if right.Magnitude < 1e-9 then
+		right = v3(1, 0, 0)
+	end
+	right = right.Unit
+	local newUp = right:Cross(look)
+	return cf(eye.X, eye.Y, eye.Z, right.X, newUp.X, -look.X, right.Y, newUp.Y, -look.Y, right.Z, newUp.Z, -look.Z)
+end
+CF.__index = function(self, key)
+	local m = rawget(self, "m")
+	if key == "Position" or key == "p" then
+		return v3(self.X, self.Y, self.Z)
+	elseif key == "LookVector" then
+		return v3(-m[3], -m[6], -m[9])
+	elseif key == "RightVector" or key == "XVector" then
+		return v3(m[1], m[4], m[7])
+	elseif key == "UpVector" or key == "YVector" then
+		return v3(m[2], m[5], m[8])
+	elseif key == "ZVector" then
+		return v3(m[3], m[6], m[9])
+	elseif key == "Rotation" then
+		return fromRotation(0, 0, 0, m)
+	end
+	return CF[key]
+end
+CF.__mul = function(a, b)
+	if rawget(b, "_isVector3") then
+		local x, y, z = rotate(a.m, b.X, b.Y, b.Z)
+		return v3(a.X + x, a.Y + y, a.Z + z)
+	end
+	local x, y, z = rotate(a.m, b.X, b.Y, b.Z)
+	return fromRotation(a.X + x, a.Y + y, a.Z + z, mulRotation(a.m, b.m))
+end
+CF.__add = function(a, b)
+	return fromRotation(a.X + b.X, a.Y + b.Y, a.Z + b.Z, a.m)
+end
+CF.__sub = function(a, b)
+	return fromRotation(a.X - b.X, a.Y - b.Y, a.Z - b.Z, a.m)
+end
+CF.__eq = function(a, b)
+	if a.X ~= b.X or a.Y ~= b.Y or a.Z ~= b.Z then
+		return false
+	end
+	for index = 1, 9 do
+		if a.m[index] ~= b.m[index] then
+			return false
+		end
+	end
+	return true
+end
+function CF.Inverse(self)
+	local m = self.m
+	local t = { m[1], m[4], m[7], m[2], m[5], m[8], m[3], m[6], m[9] }
+	local x, y, z = rotate(t, -self.X, -self.Y, -self.Z)
+	return fromRotation(x, y, z, t)
+end
+function CF.ToWorldSpace(self, other)
+	return self * other
+end
+function CF.ToObjectSpace(self, other)
+	return self:Inverse() * other
+end
+function CF.PointToWorldSpace(self, point)
+	return self * point
+end
+function CF.PointToObjectSpace(self, point)
+	return self:Inverse() * point
+end
+function CF.VectorToWorldSpace(self, vector)
+	return v3(rotate(self.m, vector.X, vector.Y, vector.Z))
+end
+function CF.VectorToObjectSpace(self, vector)
+	local m = self.m
+	return v3(rotate({ m[1], m[4], m[7], m[2], m[5], m[8], m[3], m[6], m[9] }, vector.X, vector.Y, vector.Z))
+end
+function CF.GetComponents(self)
+	return self.X, self.Y, self.Z, table.unpack(self.m)
+end
+CF.components = CF.GetComponents
+function CF.ToEulerAnglesYXZ(self)
+	local m = self.m
+	return math.asin(math.clamp(-m[6], -1, 1)), math.atan2(m[3], m[9]), math.atan2(m[4], m[5])
+end
+CF.ToOrientation = CF.ToEulerAnglesYXZ
+function CF.ToEulerAnglesXYZ(self)
+	local m = self.m
+	return math.atan2(-m[6], m[9]), math.asin(math.clamp(m[3], -1, 1)), math.atan2(-m[2], m[1])
+end
+function CF.Lerp(self, goal, alpha)
+	-- Approximation suffisante pour des tests : position interpolée, rotation de l'extrémité la plus proche.
+	local source = if alpha < 0.5 then self else goal
+	return fromRotation(self.X + (goal.X - self.X) * alpha, self.Y + (goal.Y - self.Y) * alpha, self.Z + (goal.Z - self.Z) * alpha, source.m)
+end
+CFrame = {
+	new = function(a, b, c, ...)
+		if a == nil then
+			return cf(0, 0, 0)
+		elseif type(a) == "number" then
+			return cf(a, b, c, ...)
+		elseif b ~= nil then
+			return lookAt(a, b)
+		end
+		return cf(a.X, a.Y, a.Z)
+	end,
+	lookAt = lookAt,
+	lookAlong = function(eye, direction, up)
+		return lookAt(eye, eye + direction, up)
+	end,
+	Angles = function(rx, ry, rz)
+		return fromRotation(0, 0, 0, mulRotation(mulRotation(rotX(rx), rotY(ry)), rotZ(rz)))
+	end,
+	fromEulerAnglesYXZ = function(rx, ry, rz)
+		return fromRotation(0, 0, 0, mulRotation(mulRotation(rotY(ry), rotX(rx)), rotZ(rz)))
+	end,
+	fromMatrix = function(pos, vx, vy, vz)
+		vz = vz or vx:Cross(vy).Unit
+		return cf(pos.X, pos.Y, pos.Z, vx.X, vy.X, vz.X, vx.Y, vy.Y, vz.Y, vx.Z, vy.Z, vz.Z)
+	end,
+	fromAxisAngle = function(axis, angle)
+		local u = axis.Unit
+		local c, s = math.cos(angle), math.sin(angle)
+		local k = 1 - c
+		return cf(0, 0, 0,
+			c + u.X * u.X * k, u.X * u.Y * k - u.Z * s, u.X * u.Z * k + u.Y * s,
+			u.Y * u.X * k + u.Z * s, c + u.Y * u.Y * k, u.Y * u.Z * k - u.X * s,
+			u.Z * u.X * k - u.Y * s, u.Z * u.Y * k + u.X * s, c + u.Z * u.Z * k)
+	end,
+}
+CFrame.fromEulerAnglesXYZ = CFrame.Angles
+CFrame.fromOrientation = CFrame.fromEulerAnglesYXZ
+CFrame.identity = cf(0, 0, 0)
+
+Vector2 = {
+	new = function(x, y)
+		return { X = x or 0, Y = y or 0, _isVector2 = true }
+	end,
+}
+Vector2.zero = Vector2.new(0, 0)
+Vector2.one = Vector2.new(1, 1)
+
+NumberRange = {
+	new = function(min, max)
+		return { Min = min, Max = max or min }
+	end,
+}
+
 Color3 = {
 	new = function(r, g, b)
 		return { R = r or 0, G = g or 0, B = b or 0, _isColor3 = true }
@@ -377,6 +565,10 @@ typeof = function(value)
 			return "Instance"
 		elseif rawget(value, "_isVector3") then
 			return "Vector3"
+		elseif rawget(value, "_isCFrame") then
+			return "CFrame"
+		elseif rawget(value, "_isVector2") then
+			return "Vector2"
 		elseif rawget(value, "_isColor3") then
 			return "Color3"
 		elseif getmetatable(value) == EnumMeta then

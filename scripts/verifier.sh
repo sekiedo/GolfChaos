@@ -20,6 +20,13 @@ if [ "${1:-}" = "--reference" ]; then
   exit 0
 fi
 echo "Construction Rojo : OK"
+# Cles de texte ecrites en toutes lettres dans le code mais absentes des fichiers Locale/fr.
+grep -rhoE '\["[a-zA-Z]+\.[A-Za-z0-9_.]+"\]' src/shared/Locale/fr | tr -d '[]"' | sort -u > build/.keys_fr.tmp
+prefixes=$(cut -d. -f1 build/.keys_fr.tmp | sort -u | paste -sd'|')
+absentes=$(grep -rhoE "\"($prefixes)\.[A-Za-z0-9_]+(\.[A-Za-z0-9_]+)*\"" src/server src/client src/shared --include=*.luau --exclude-dir=Locale \
+  | tr -d '"' | sort -u | comm -23 - build/.keys_fr.tmp | grep -vxE 'menu\.ready|ui\.ok|cos\.head_pirate_hat') # exemples cites dans des commentaires
+rm -f build/.keys_fr.tmp
+if [ -n "$absentes" ]; then echo "CLES DE TEXTE ABSENTES en francais :"; echo "$absentes"; else echo "Cles de texte : aucune cle utilisee absente."; fi
 echo "Diagnostics : $(wc -l < build/analyse_courante.txt) (reference : $(wc -l < build/analyse_reference.txt 2>/dev/null || echo '?'))"
 if [ -f build/analyse_reference.txt ]; then
   norm build/analyse_reference.txt > build/.ref.tmp; norm build/analyse_courante.txt > build/.cur.tmp

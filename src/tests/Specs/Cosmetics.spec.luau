@@ -62,6 +62,24 @@ return function(t)
 			end
 		end)
 
+		t.it("a une description et des noms de variantes traduits (fr et en)", function()
+			local missing = {}
+			local function check(key: any)
+				if type(key) == "string" and (not Locale.has(key, "fr") or not Locale.has(key, "en")) then
+					table.insert(missing, key)
+				end
+			end
+			for _, def in Cosmetics.all() do
+				check((def :: any).descKey)
+				for _, variant in (def :: any).variants or {} do
+					check(variant.nameKey)
+				end
+			end
+			if #missing > 0 then
+				error(string.format("%d texte(s) manquant(s) : %s", #missing, table.concat(missing, ", ", 1, math.min(#missing, 10))))
+			end
+		end)
+
 		t.it("construit chaque modèle sans erreur et sans effet physique", function()
 			local holder = Instance.new("Folder")
 			local failures = {}
