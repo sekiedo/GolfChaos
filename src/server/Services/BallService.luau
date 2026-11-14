@@ -97,6 +97,7 @@ local CollisionService = require(script.Parent.CollisionService)
 local CombatService = require(script.Parent.CombatService)
 local MovementService = require(script.Parent.MovementService)
 local NetworkValidation = require(script.Parent.NetworkValidation)
+local Hazards = require(script.Parent.Parent.Ball.Hazards)
 
 type Signal = SignalModule.Signal
 type Connection = SignalModule.Connection
@@ -104,139 +105,17 @@ type Trove = TroveModule.Trove
 type ShotTypeDef = Config.ShotTypeDef
 type SurfaceDef = Config.SurfaceDef
 
---------------------------------------------------------------------------------
--- Types publics
---------------------------------------------------------------------------------
-
-export type BallState = "Resting" | "Moving" | "Holed" | "Frozen"
-
-export type SpawnOptions = {
-	practice: boolean?, -- balle d'entraînement ; défaut : selon la phase (Ball.PracticePhases)
-	snap: boolean?, -- pose au sol sous la position demandée (défaut true)
-}
-
-export type ShotInfo = {
-	shotType: string,
-	loft: number, -- degrés, borné au type
-	power: number, -- puissance retenue par le serveur (0..1)
-	speed: number, -- vitesse de lancement (studs/s)
-	origin: Vector3, -- position de la balle au départ du coup
-	direction: Vector3, -- direction horizontale unitaire
-	fromDistance: number?, -- distance horizontale départ–trou (nil si aucun trou)
-	forced: boolean, -- frappe forcée (ForceShot)
-	reason: string?, -- motif de la frappe forcée ("horn"...)
-	practice: boolean,
-	boost: number, -- multiplicateur de frappe amplifiée appliqué (1 = aucun)
-	targetUserId: number, -- cible du tir guidé (0 = aucune)
-}
-
-export type HoledInfo = {
-	strokes: number, -- coups + pénalités du trou
-	shotDistance: number, -- distance horizontale parcourue par le coup gagnant (0 si poussée extérieure)
-	fromDistance: number, -- distance horizontale départ du coup gagnant–trou (0 si poussée extérieure)
-	wasPutt: boolean,
-	holeInOne: boolean,
-	shotType: string,
-	gimme: boolean, -- balle presque arrêtée tombée du bord
-	external: boolean, -- balle poussée dans le trou par un tiers (objet) : pas de bonus de distance
-	practice: boolean,
-}
-
-export type SimShot = {
-	velocity: Vector3?, -- vitesse initiale imposée (prioritaire, plafonnée à Ball.MaxSpeed)
-	direction: Vector3?, -- sinon : direction horizontale...
-	loft: number?, -- ...angle (défaut : celui du type)...
-	power: number?, -- ...puissance 0..1 (défaut 1)...
-	shotType: string?, -- ...et type de frappe (défaut Shot.DefaultType)
-	wind: boolean?, -- appliquer le vent courant (défaut false : résultat reproductible)
-}
-
-export type SimOutcome = "Resting" | "Holed" | "Hazard" | "Stuck" | "Timeout" | "Removed"
-
-export type SimResult = {
-	outcome: SimOutcome,
-	position: Vector3, -- position finale (ou point d'entrée dans le danger)
-	start: Vector3,
-	hazard: string?, -- type de danger si outcome = "Hazard"
-	elapsed: number, -- durée du mouvement (s)
-	distance: number, -- distance horizontale départ–arrivée
-	maxHeight: number, -- hauteur maximale atteinte au-dessus du départ
-	surface: string, -- surface sous la balle à la fin
-}
-
---------------------------------------------------------------------------------
--- Types internes
---------------------------------------------------------------------------------
-
-type ShotOptions = {
-	forced: boolean,
-	reason: string?,
-	target: Player?,
-}
-
-type GuidedState = {
-	target: Player,
-	startedAt: number,
-	nextCheckAt: number,
-	losLostAt: number?,
-	airborne: boolean, -- la balle a quitté le sol au moins une fois depuis la frappe
-}
-
-type BallData = {
-	ball: BasePart,
-	trove: Trove, -- durée de vie de la balle (instance, tween, délais)
-	owner: Player?, -- nil pour une balle de simulation
-	userId: number,
-	sim: boolean,
-	practice: boolean,
-	practiceExplicit: boolean, -- type demandé explicitement à la création
-	removed: boolean,
-	state: BallState,
-	trail: Trail?,
-	gravityForce: VectorForce,
-	-- visée
-	aiming: boolean,
-	swingStartAt: number?, -- heure serveur de Golf.SwingStart (jauge en cours)
-	aimBlockedUntil: number,
-	lastShotAt: number,
-	-- mouvement
-	moveStartAt: number,
-	lastPosition: Vector3, -- position au Heartbeat précédent (balayage, trou)
-	restTimer: number,
-	gimmeTimer: number,
-	stuckAnchor: Vector3,
-	stuckTimer: number,
-	hazardTimer: number,
-	grounded: boolean,
-	groundNormal: Vector3,
-	surface: string,
-	maxSpeed: number,
-	hitCooldowns: { [Player]: number },
-	lipOutUntil: number,
-	landingFxAt: number,
-	externalImpulse: boolean, -- mouvement courant causé par un tiers (dispense de pénalité de danger)
-	windEnabled: boolean,
-	-- positions de référence
-	lastValid: Vector3,
-	shotOrigin: Vector3,
-	shotType: string,
-	shotFromDistance: number?,
-	-- états temporaires
-	frozenUntil: number,
-	frozenResume: BallState?,
-	frozenThread: thread?,
-	boost: number,
-	boostUntil: number,
-	boostThread: thread?,
-	sinkTween: Tween?,
-	guided: GuidedState?,
-	-- simulation
-	simDone: Signal?,
-	simStart: Vector3,
-	simMaxY: number,
-	errors: number,
-}
-
+local Types = require(script.Parent.Parent.Ball.Types)
+export type BallState = Types.BallState
+export type SpawnOptions = Types.SpawnOptions
+export type ShotInfo = Types.ShotInfo
+export type HoledInfo = Types.HoledInfo
+export type SimShot = Types.SimShot
+export type SimOutcome = Types.SimOutcome
+export type SimResult = Types.SimResult
+type ShotOptions = Types.ShotOptions
+type GuidedState = Types.GuidedState
+type BallData = Types.BallData
 
 --------------------------------------------------------------------------------
 -- Réglages
@@ -272,7 +151,7 @@ local SIM_DEFAULT_TIMEOUT = 20 -- [repli] StepSim : attente par défaut (s)
 local SIM_MAX_TIMEOUT = 120 -- [repli] StepSim : attente maximale (s)
 
 local AIM_LOCK = "Aim" -- verrou MovementService (retiré automatiquement à la réapparition)
-local HAZARD_KINDS: { [string]: boolean } = { water = true, oob = true, lava = true, void = true }
+local HAZARD_KINDS = Hazards.KINDS
 local MATCH_PHASES: { [string]: boolean } = {
 	Loading = true,
 	HoleIntro = true,
@@ -330,14 +209,11 @@ local guidedReadyAt: { [Player]: number } = {}
 local swingTokens: { [Player]: number } = {}
 local playerTroves: { [Player]: Trove } = {}
 local characterList: { Instance } = {}
-local hazardRoots: { Instance } = {}
 
 local serviceTrove: Trove? = nil
 local ballsFolder: Folder? = nil
 local simFolder: Folder? = nil
 local solidParams: RaycastParams? = nil -- ce que « voit » une balle : sol, murs, obstacles (groupe Balls)
-local hazardOverlap: OverlapParams? = nil
-local hazardRay: RaycastParams? = nil
 local hitOverlap: OverlapParams? = nil
 local random: Random? = nil
 
@@ -1390,107 +1266,7 @@ end
 -- Dangers et replacement
 --------------------------------------------------------------------------------
 
--- Type de danger d'une Part balisée (attribut Hazard sur la Part ou sur un ancêtre balisé).
-local function hazardKindOf(part: Instance): string
-	local current: Instance? = part
-	while current and current ~= Workspace do
-		local kind = current:GetAttribute("Hazard")
-		if type(kind) == "string" and HAZARD_KINDS[kind] then
-			return kind
-		end
-		if CollectionService:HasTag(current, HAZARDS.Tag) then
-			break
-		end
-		current = current.Parent
-	end
-	return HAZARDS.DefaultKind
-end
-
-local function taggedHazard(previous: Vector3, position: Vector3, grounded: boolean): (string?, Vector3?)
-	local overlap = hazardOverlap
-	if #hazardRoots == 0 or not overlap then
-		return nil, nil
-	end
-	for _, part in Workspace:GetPartBoundsInRadius(position, ballRadius(), overlap) do
-		local kind = hazardKindOf(part)
-		-- Hors limites : seulement quand la balle touche le sol (le survol est permis).
-		if kind ~= "oob" or grounded or not HAZARDS.OobRequiresGround then
-			return kind, position
-		end
-	end
-	-- Volume mince traversé entre deux images (balle rapide) ; un hors-limites survolé reste permis.
-	local ray = hazardRay
-	local delta = position - previous
-	if ray and delta.Magnitude > BALL.Diameter then
-		local result = Workspace:Raycast(previous, delta, ray)
-		if result then
-			local kind = hazardKindOf(result.Instance)
-			if kind ~= "oob" or not HAZARDS.OobRequiresGround then
-				return kind, result.Position
-			end
-		end
-	end
-	return nil, nil
-end
-
--- Eau du Terrain à la position (lecture de voxels, résolution 4).
-local function inTerrainWater(position: Vector3): boolean
-	if not BALL.TerrainWater then
-		return false
-	end
-	local terrain = Workspace.Terrain
-	local region = Region3.new(position - Vector3.new(2, 2, 2), position + Vector3.new(2, 2, 2)):ExpandToGrid(4)
-	local ok, materials, occupancies = pcall(function(): (any, any)
-		return terrain:ReadVoxels(region, 4)
-	end)
-	if not ok or materials == nil or occupancies == nil then
-		return false
-	end
-	local size = materials.Size
-	if typeof(size) ~= "Vector3" then
-		return false
-	end
-	local minCorner = region.CFrame.Position - region.Size / 2
-	local ix = math.clamp(math.floor((position.X - minCorner.X) / 4) + 1, 1, size.X)
-	local iy = math.clamp(math.floor((position.Y - minCorner.Y) / 4) + 1, 1, size.Y)
-	local iz = math.clamp(math.floor((position.Z - minCorner.Z) / 4) + 1, 1, size.Z)
-	if materials[ix][iy][iz] ~= Enum.Material.Water then
-		return false
-	end
-	local surfaceHeight = minCorner.Y + (iy - 1) * 4 + occupancies[ix][iy][iz] * 4
-	return position.Y <= surfaceHeight
-end
-
-local function courseOutOfBounds(position: Vector3): boolean
-	if not HAZARDS.UseCourseBounds then
-		return false
-	end
-	local CourseService = optionalService("CourseService")
-	if CourseService and type(CourseService.IsOutOfBounds) == "function" then
-		local ok, result = pcall(CourseService.IsOutOfBounds, position)
-		return ok and result == true
-	end
-	return false
-end
-
--- Volumes balisés à chaque image ; contrôles coûteux (eau du Terrain, limites du trou) périodiques.
-local function detectHazard(data: BallData, previous: Vector3, position: Vector3, dt: number): (string?, Vector3?)
-	local kind, at = taggedHazard(previous, position, data.grounded)
-	if kind then
-		return kind, at
-	end
-	data.hazardTimer += dt
-	if data.hazardTimer >= BALL.HazardCheckInterval then
-		data.hazardTimer = 0
-		if inTerrainWater(position) then
-			return "water", position
-		end
-		if (data.grounded or not HAZARDS.OobRequiresGround) and courseOutOfBounds(position) then
-			return "oob", position
-		end
-	end
-	return nil, nil
-end
+local detectHazard = Hazards.detect
 
 -- Pénalité automatique d'un danger (0 : simulation, poussée extérieure, ou hors phase de jeu).
 local function hazardPenalty(data: BallData, reason: string): number
@@ -2783,30 +2559,6 @@ end
 -- Cycle de vie
 --------------------------------------------------------------------------------
 
-local function refreshHazardFilters()
-	if hazardOverlap then
-		hazardOverlap.FilterDescendantsInstances = hazardRoots
-	end
-	if hazardRay then
-		hazardRay.FilterDescendantsInstances = hazardRoots
-	end
-end
-
-local function addHazard(instance: Instance)
-	if table.find(hazardRoots, instance) == nil then
-		table.insert(hazardRoots, instance)
-		refreshHazardFilters()
-	end
-end
-
-local function removeHazard(instance: Instance)
-	local index = table.find(hazardRoots, instance)
-	if index then
-		table.remove(hazardRoots, index)
-		refreshHazardFilters()
-	end
-end
-
 local function refreshHitFilter()
 	if hitOverlap then
 		hitOverlap.FilterDescendantsInstances = characterList
@@ -2945,28 +2697,13 @@ function BallService.Init()
 	ensureFolders()
 	refreshSolidFilter()
 
-	local overlap = OverlapParams.new()
-	overlap.FilterType = Enum.RaycastFilterType.Include
-	overlap.FilterDescendantsInstances = {}
-	hazardOverlap = overlap
-
-	local ray = RaycastParams.new()
-	ray.FilterType = Enum.RaycastFilterType.Include
-	ray.IgnoreWater = true
-	ray.FilterDescendantsInstances = {}
-	hazardRay = ray
-
 	local hits = OverlapParams.new()
 	hits.FilterType = Enum.RaycastFilterType.Include
 	hits.FilterDescendantsInstances = {}
 	hitOverlap = hits
 
 	-- Volumes dangereux balisés (Parts ou Models ; attribut Hazard = "water" | "oob" | "lava" | "void").
-	trove:Connect(CollectionService:GetInstanceAddedSignal(HAZARDS.Tag), addHazard)
-	trove:Connect(CollectionService:GetInstanceRemovedSignal(HAZARDS.Tag), removeHazard)
-	for _, instance in CollectionService:GetTagged(HAZARDS.Tag) do
-		addHazard(instance)
-	end
+	Hazards.start(trove)
 
 	trove:Connect(Players.PlayerAdded, setupPlayer)
 	trove:Connect(Players.PlayerRemoving, cleanupPlayer)
