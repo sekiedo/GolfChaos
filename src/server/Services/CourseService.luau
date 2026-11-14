@@ -75,6 +75,7 @@ local TroveModule = require(Shared.Util.Trove)
 local Validate = require(Shared.Util.Validate)
 
 local PathMath = require(script.Parent.Parent.Course.PathMath)
+local Mood = require(script.Parent.Parent.Course.Mood)
 type Trove = TroveModule.Trove
 type Signal = SignalModule.Signal
 type HoleDef = Types.HoleDef
@@ -175,11 +176,11 @@ local PLAYER_OFFSET = CFrame.new(0, 3, 3.5) -- joueur derrière sa balle (repli 
 local FALLBACK_PRESETS: { [string]: LightingPreset } = {
 	Lobby = {
 		lighting = {
-			ClockTime = 14.2,
-			Brightness = 2.6,
-			Ambient = Color3.fromRGB(122, 122, 138),
-			OutdoorAmbient = Color3.fromRGB(150, 150, 162),
-			ColorShift_Top = Color3.fromRGB(255, 242, 222),
+			ClockTime = 16.8, -- heure dorée de fin d'après-midi
+			Brightness = 3.1,
+			Ambient = Color3.fromRGB(150, 128, 120),
+			OutdoorAmbient = Color3.fromRGB(176, 150, 138),
+			ColorShift_Top = Color3.fromRGB(255, 226, 180),
 			ColorShift_Bottom = Color3.fromRGB(0, 0, 0),
 			EnvironmentDiffuseScale = 1,
 			EnvironmentSpecularScale = 0.6,
@@ -1337,6 +1338,7 @@ function CourseService.ApplyBiomeLighting(biome: string?)
 	if atmosphereGoals and next(atmosphereGoals) then
 		TweenService:Create(atmosphere, info, atmosphereGoals):Play()
 	end
+	Mood.apply(key, animate)
 	currentLightingKey = key
 end
 

@@ -30,6 +30,7 @@ local Log = require(Shared.Util.Log)
 local Signal = require(Shared.Util.Signal)
 local Trove = require(Shared.Util.Trove)
 local Cosmetics = require(Shared.Cosmetics)
+local Build = require(Shared.Cosmetics.Build)
 local Economy = require(Shared.Config.Economy)
 
 type CosmeticDef = Cosmetics.CosmeticDef
@@ -377,6 +378,16 @@ local function addAccessory(humanoid: Humanoid, accessory: Instance)
 	end
 end
 
+-- Gant de golf blanc (main avant = gauche) : poignet rembourré, dos de la main, bande velcro bleue. Purement visuel.
+local function addGlove(humanoid: Humanoid)
+	local accessory, handle = Build.accessory("GantDeGolf", "LeftGripAttachment", Vector3.new(0.2, 0.2, 0.2), Vector3.zero)
+	local white = Color3.fromRGB(250, 250, 250)
+	Build.attach(handle, Build.part({ Name = "Gant", Size = Vector3.new(1.08, 0.5, 1.08), Color = white, Material = Enum.Material.Fabric }), CFrame.new(0, 0.18, 0))
+	Build.attach(handle, Build.part({ Name = "Poignet", Size = Vector3.new(1.14, 0.16, 1.14), Color = Color3.fromRGB(60, 110, 200), Material = Enum.Material.Fabric }), CFrame.new(0, 0.46, 0))
+	Build.finalize(accessory)
+	addAccessory(humanoid, accessory)
+end
+
 local function attachClub(character: Model, model: Model)
 	local hand = character:FindFirstChild("RightHand") :: BasePart?
 	local handGrip = hand and hand:FindFirstChild("RightGripAttachment") :: Attachment?
@@ -411,12 +422,35 @@ local function attachClub(character: Model, model: Model)
 	model.Parent = character
 end
 
-local function applyBodyColors(character: Model, colors: { [string]: Color3 }?)
+-- Teints chaleureux (choisis selon l'identifiant du joueur : variété sans réglage, jamais le gris par défaut du moteur).
+local SKIN_TONES: { Color3 } = {
+	Color3.fromRGB(255, 214, 178),
+	Color3.fromRGB(241, 194, 150),
+	Color3.fromRGB(224, 172, 122),
+	Color3.fromRGB(198, 140, 98),
+	Color3.fromRGB(160, 106, 72),
+	Color3.fromRGB(118, 78, 54),
+}
+
+local function skinToneFor(userId: number): Color3
+	return SKIN_TONES[(math.abs(userId) % #SKIN_TONES) + 1]
+end
+
+local function applyBodyColors(character: Model, colors: { [string]: Color3 }?, userId: number?)
 	local bodyColors = character:FindFirstChildOfClass("BodyColors")
 	if not bodyColors then
 		bodyColors = Instance.new("BodyColors")
 		bodyColors.Parent = character
 	end
+	-- Base : tête et mains couleur de peau, le reste couleur neutre chaude ; la tenue peut tout remplacer.
+	local skin = skinToneFor(userId or 0)
+	local base = bodyColors :: any
+	base.HeadColor3 = skin
+	base.LeftArmColor3 = skin
+	base.RightArmColor3 = skin
+	base.TorsoColor3 = Color3.fromRGB(245, 245, 240)
+	base.LeftLegColor3 = Color3.fromRGB(70, 80, 105)
+	base.RightLegColor3 = Color3.fromRGB(70, 80, 105)
 	if not colors then
 		return
 	end
@@ -451,7 +485,16 @@ function CosmeticService.ApplyAppearance(player: Player, character: Model)
 
 	-- Tenue : couleurs du corps + pièces.
 	local outfitDef = if equipped.Outfit then Cosmetics.get(equipped.Outfit) else nil
-	applyBodyColors(character, outfitDef and outfitDef.bodyColors or nil)
+	applyBodyColors(character, outfitDef and outfitDef.bodyColors or nil, player.UserId)
+	-- Mains en couleur de peau (manches blanches de la tenue) + gant de golf blanc à la main avant.
+	local skin = skinToneFor(player.UserId)
+	for _, handName in { "LeftHand", "RightHand" } do
+		local hand = character:FindFirstChild(handName)
+		if hand and hand:IsA("BasePart") then
+			hand.Color = skin
+		end
+	end
+	addGlove(humanoid)
 	for _, slot in { "Outfit", "Shoes", "Head", "Face" } do
 		local id = equipped[slot]
 		local def = if type(id) == "string" then Cosmetics.get(id) else nil

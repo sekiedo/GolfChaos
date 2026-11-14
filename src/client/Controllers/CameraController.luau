@@ -738,6 +738,57 @@ function CameraController.Init()
 		RunService:UnbindFromRenderStep(RENDER_MAIN)
 	end)
 
+	-- Règle de visibilité : un objet « caméra » (caméra drone de suivi / spectateur) ne doit jamais être visible par le
+	-- joueur qu'il suit. Masqué localement (LocalTransparencyModifier = 1, émetteurs coupés) ; les autres joueurs le voient.
+	local function isCameraProp(instance: Instance): boolean
+		if not (instance:IsA("BasePart") or instance:IsA("Model")) then
+			return false
+		end
+		local name = string.lower(instance.Name)
+		return instance:GetAttribute("CameraProp") == true
+			or string.find(name, "spectatorcamera", 1, true) ~= nil
+			or string.find(name, "dronecamera", 1, true) ~= nil
+			or string.find(name, "followcamera", 1, true) ~= nil
+			or string.find(name, "camerarig", 1, true) ~= nil
+	end
+	local function hideFromSelf(instance: Instance)
+		local watched = instance:GetAttribute("WatchedUserId")
+		if watched ~= nil and watched ~= localPlayer.UserId then
+			return -- suit quelqu'un d'autre : visible pour nous
+		end
+		local targets: { Instance } = { instance }
+		for _, descendant in instance:GetDescendants() do
+			table.insert(targets, descendant)
+		end
+		for _, item in targets do
+			if item:IsA("BasePart") then
+				item.LocalTransparencyModifier = 1
+				runtimeTrove:Connect(item:GetPropertyChangedSignal("LocalTransparencyModifier"), function()
+					if item.LocalTransparencyModifier ~= 1 then
+						item.LocalTransparencyModifier = 1
+					end
+				end)
+			elseif item:IsA("Decal") then
+				item.Transparency = 1
+			elseif item:IsA("ParticleEmitter") or item:IsA("Trail") or item:IsA("Beam") then
+				(item :: any).Enabled = false
+			end
+		end
+	end
+	local function scanOwnCameraProps(root: Instance)
+		for _, descendant in root:GetDescendants() do
+			if isCameraProp(descendant) then
+				hideFromSelf(descendant)
+			end
+		end
+		runtimeTrove:Connect(root.DescendantAdded, function(descendant: Instance)
+			if isCameraProp(descendant) then
+				task.defer(hideFromSelf, descendant)
+			end
+		end)
+	end
+	scanOwnCameraProps(Workspace)
+
 	local function onCharacterAdded(character: Model)
 		-- Le moteur remet CameraSubject sur le nouvel humanoïde : on réapplique le suivi éventuel.
 		task.defer(function()
