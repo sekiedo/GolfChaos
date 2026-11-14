@@ -14,13 +14,13 @@
    ============================================================================ */
 const DATA = {
   majLe: "14/11/2026",
-  etape: { numero: 7, titre: "Écrans Boutique, Personnaliser, Défis, Émotes (écrits, non joués)", detail: "Étapes 1 à 7 écrites et vérifiées en local. Reste : objets, véhicules, découpage des gros modules, boucle jouable, puis test dans Studio." },
+  etape: { numero: 8, titre: "Objets (17) et kart-caddie (écrits, non joués)", detail: "Étapes 1 à 8 écrites et vérifiées en local. Reste : découpage des gros modules, boucle jouable, puis test dans Studio." },
   chiffres: [
     { valeur: "192", libelle: "fichiers exportés" },
     { valeur: "162", libelle: "fichiers Luau du jeu" },
     { valeur: "54 951", libelle: "lignes de Luau" },
     { valeur: "75 / 77", libelle: "tests unitaires (Studio, 14/11)" },
-    { valeur: "205 / 206", libelle: "tests exécutés en local" },
+    { valeur: "217 / 218", libelle: "tests exécutés en local" },
     { valeur: "63", libelle: "remotes typés" },
     { valeur: "6 / 81", libelle: "trous commencés" }
   ],
@@ -62,7 +62,8 @@ const DATA = {
       "Étape 4 — audit : aucun appel entre services vers une méthode ou un signal inexistant ; diagnostics de types d'origine = bruit",
       "Étape 5 — 13 émotes : textes fr/en, EmoteService, AnimationController (tests locaux 195/198, types sans nouveau diagnostic)",
       "Étape 6 — catalogues : 21 tenues, 16 clubs, 11 balles, 6 effets de trou ; manche de club réorienté ; effet de trou branché (tests locaux 197/198)",
-      "Étape 7 — écrans Boutique, Personnaliser, Défis, Émotes + ProfileController (tests locaux 205/206)"
+      "Étape 7 — écrans Boutique, Personnaliser, Défis, Émotes + ProfileController (tests locaux 205/206)",
+      "Étape 8 — ItemService + 17 objets, VehicleService (kart), InventoryController (tests locaux 217/218)"
     ],
     encours: [
       "Passe visuelle : rendu du jeu jamais relu à l'écran (à cadrer avec l'utilisateur)"
@@ -71,8 +72,6 @@ const DATA = {
       "Vérifier en Studio le manche de club, les tenues, les effets de trou et les nouveaux écrans",
       "Terminer la boucle jouable et la jouer en Play solo (DevBridge scenario)",
       "Découper les gros modules : BallService (3 035 l.), MatchService (2 725 l.), CourseService (1 850 l.)",
-      "ItemService + 17 comportements d'objets",
-      "VehicleService + VehicleController",
       "75 trous restants et validation automatique",
       "Cosmétiques restants et écrans Boutique / Personnaliser / Défis",
       "Spectateur, tutoriel, parties privées",
@@ -80,6 +79,7 @@ const DATA = {
     ]
   },
   journal: [
+    { date: "14/11/2026", titre: "Étape 8 terminée — objets et kart", texte: "ItemService (inventaire, effets, bulle, boîtes), 17 comportements d'objets, VehicleService (kart 8 places piloté par le serveur) et InventoryController (touches 1 à 4, E, manette). 217 tests sur 218 en local. Non joué dans Studio : physique du kart, projectiles, géant, invisibilité." },
     { date: "14/11/2026", titre: "Étape 7 terminée — écrans de collection", texte: "Boutique, Personnaliser, Défis et choix d'émote (touche V ou menu) branchés sur le profil (ProfileController, Data.Sync) et les remotes Shop.* / Emote.*. Aucun aperçu 3D : pastilles de couleur. 205 tests sur 206 en local. Non testé dans Studio." },
     { date: "14/11/2026", titre: "Étape 6 terminée — catalogues et manche de club", texte: "Ajout de 20 tenues, 15 clubs, 10 balles et 5 effets de trou (plus les objets par défaut), avec tous leurs textes fr/en. Le manche de club suit maintenant l'axe pivot → mains pendant les animations de golf (calcul direct dans AnimationController, soudure ClubGrip côté serveur). L'effet de trou équipé est joué par EffectsController. 197 tests sur 198 en local (reste le générateur aléatoire de l'émulation). Non testé dans Studio." },
     { date: "14/11/2026", titre: "Étape 5 terminée — émotes", texte: "Textes des 13 émotes (fr/en), EmoteService (validation serveur, arrêt sur golf/combat/KO/visée/véhicule/mort) et AnimationController (couches, fondus, heure serveur, effets réduits). Non testé dans Studio ; le manche de club n'est pas réorienté. Correctif : dashboard.html avait une erreur de syntaxe (liste « fait ») qui empêchait l'affichage." },

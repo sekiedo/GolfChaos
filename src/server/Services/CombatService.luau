@@ -125,6 +125,8 @@ CombatService.Priority = 15
 
 CombatService.KnockedOut = SignalModule.new() :: Signal
 CombatService.Recovered = SignalModule.new() :: Signal
+-- Coup de poing valide : (puncher, position du poing). Sert au désamorçage du Champignon Piégé.
+CombatService.Punched = SignalModule.new() :: Signal
 
 local KO = Config.KO
 local PUNCH = Config.Punch
@@ -988,6 +990,7 @@ local function onPunch(player: Player, roundId: number, direction: Vector3)
 		CombatService.EndProtection(player)
 	end
 
+	CombatService.Punched:Fire(player, root.Position + finalAim * 3)
 	local target, reason = findPunchTarget(player, root, finalAim)
 	if not target then
 		feedback(player, "punch", false, reason)
