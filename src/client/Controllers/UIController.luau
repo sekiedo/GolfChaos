@@ -58,6 +58,10 @@ local SCREEN_MODULES = {
 	"LobbyMenu",
 	"HostSettings",
 	"Settings",
+	"Shop",
+	"Customize",
+	"Challenges",
+	"Emotes",
 }
 
 -- Écran propre à chaque phase.

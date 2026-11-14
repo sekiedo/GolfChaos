@@ -171,7 +171,7 @@ function LobbyMenu.new(ctx: any): any
 		local grid = Instance.new("Frame")
 		grid.Name = "Grille"
 		grid.BackgroundTransparency = 1
-		grid.Size = UDim2.new(1, 0, 0, 2 * (Theme.Touch.Medium + Theme.Touch.Lip) + Theme.Spacing.M)
+		grid.Size = UDim2.new(1, 0, 0, 3 * (Theme.Touch.Medium + Theme.Touch.Lip) + 2 * Theme.Spacing.M)
 		grid.LayoutOrder = 3
 		local gridLayout = Instance.new("UIGridLayout")
 		gridLayout.CellSize = UDim2.new(0.5, -Theme.Spacing.M / 2, 0, Theme.Touch.Medium + Theme.Touch.Lip)
@@ -230,6 +230,21 @@ function LobbyMenu.new(ctx: any): any
 			parent = grid,
 			onActivated = function()
 				if openFeature("ChallengesController", "menu.challenges") then
+					close()
+				end
+			end,
+		})
+
+		Button.new({
+			name = "Emotes",
+			key = "menu.emotes",
+			icon = "♫",
+			variant = "Secondary",
+			fill = true,
+			layoutOrder = 5,
+			parent = grid,
+			onActivated = function()
+				if openFeature("EmoteController", "menu.emotes") then
 					close()
 				end
 			end,
