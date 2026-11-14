@@ -1,0 +1,38 @@
+--!strict
+-- Settings screen (player preferences). Domain "settings".
+return {
+	["settings.title"] = "Settings",
+	["settings.tab.audio"] = "Sound",
+	["settings.tab.controls"] = "Controls",
+	["settings.tab.display"] = "Display",
+	["settings.tab.access"] = "Accessibility",
+
+	["settings.masterVolume"] = "Master volume",
+	["settings.musicVolume"] = "Music",
+	["settings.sfxVolume"] = "Sound effects",
+	["settings.uiVolume"] = "Interface sounds",
+	["settings.sensitivity"] = "Camera sensitivity",
+	["settings.invertY"] = "Invert vertical axis",
+	["settings.vibration"] = "Controller vibration",
+	["settings.cameraShake"] = "Camera shake",
+	["settings.reducedEffects"] = "Reduced effects",
+	["settings.reducedEffects.desc"] = "Fewer particles and motion animations",
+	["settings.noFlash"] = "No-flash mode",
+	["settings.noFlash.desc"] = "Removes flashes and fast blinking",
+	["settings.textSize"] = "Text size",
+	["settings.textSize.Normal"] = "Normal",
+	["settings.textSize.Large"] = "Large",
+	["settings.textSize.Larger"] = "Extra large",
+	["settings.quality"] = "Effects quality",
+	["settings.quality.Auto"] = "Automatic",
+	["settings.quality.Low"] = "Low",
+	["settings.quality.Medium"] = "Medium",
+	["settings.quality.High"] = "High",
+	["settings.language"] = "Language",
+	["settings.language.fr"] = "Français",
+	["settings.language.en"] = "English",
+
+	["settings.reset"] = "Restore defaults",
+	["settings.saved"] = "Settings saved",
+	["settings.localOnly"] = "This setting stays on this device for the session",
+}

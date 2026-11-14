@@ -1,0 +1,38 @@
+--!strict
+-- Écran Réglages (préférences du joueur). Domaine « settings ».
+return {
+	["settings.title"] = "Réglages",
+	["settings.tab.audio"] = "Son",
+	["settings.tab.controls"] = "Commandes",
+	["settings.tab.display"] = "Affichage",
+	["settings.tab.access"] = "Accessibilité",
+
+	["settings.masterVolume"] = "Volume général",
+	["settings.musicVolume"] = "Musique",
+	["settings.sfxVolume"] = "Effets sonores",
+	["settings.uiVolume"] = "Sons de l'interface",
+	["settings.sensitivity"] = "Sensibilité de la caméra",
+	["settings.invertY"] = "Inverser l'axe vertical",
+	["settings.vibration"] = "Vibrations de la manette",
+	["settings.cameraShake"] = "Secousses de la caméra",
+	["settings.reducedEffects"] = "Effets réduits",
+	["settings.reducedEffects.desc"] = "Moins de particules et d'animations de mouvement",
+	["settings.noFlash"] = "Mode sans flash",
+	["settings.noFlash.desc"] = "Supprime les éclairs et clignotements rapides",
+	["settings.textSize"] = "Taille du texte",
+	["settings.textSize.Normal"] = "Normale",
+	["settings.textSize.Large"] = "Grande",
+	["settings.textSize.Larger"] = "Très grande",
+	["settings.quality"] = "Qualité des effets",
+	["settings.quality.Auto"] = "Automatique",
+	["settings.quality.Low"] = "Basse",
+	["settings.quality.Medium"] = "Moyenne",
+	["settings.quality.High"] = "Haute",
+	["settings.language"] = "Langue",
+	["settings.language.fr"] = "Français",
+	["settings.language.en"] = "English",
+
+	["settings.reset"] = "Valeurs par défaut",
+	["settings.saved"] = "Réglages enregistrés",
+	["settings.localOnly"] = "Ce réglage reste sur cet appareil pendant la session",
+}

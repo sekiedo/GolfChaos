@@ -1,0 +1,289 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta http-equiv="refresh" content="5">
+<title>Golf Chaos — Tableau de bord</title>
+<script>
+/* ============================================================================
+   DONNÉES DU TABLEAU DE BORD — seule partie à modifier après chaque étape.
+   Statuts de système : "teste" | "ecrit" | "encours" | "afaire"
+   Le pourcentage d'un système = moyenne de ses éléments
+   (testé dans Studio 100 · écrit, non joué 60 · en cours 30 · à faire 0).
+   ============================================================================ */
+const DATA = {
+  majLe: "14/11/2026",
+  etape: { numero: 0, titre: "Mise en place du suivi", detail: "Lecture du document de transfert et création du tableau de bord. Aucun fichier du jeu n'a encore été modifié." },
+  chiffres: [
+    { valeur: "192", libelle: "fichiers exportés" },
+    { valeur: "162", libelle: "fichiers Luau du jeu" },
+    { valeur: "54 951", libelle: "lignes de Luau" },
+    { valeur: "75 / 77", libelle: "tests unitaires (Studio, 14/11)" },
+    { valeur: "63", libelle: "remotes typés" },
+    { valeur: "6 / 81", libelle: "trous commencés" }
+  ],
+  systemes: [
+    { nom: "Démarrage serveur / client", fichiers: "Server, Client", elements: ["teste"] },
+    { nom: "Réseau typé + limites de débit", fichiers: "Shared.Net, Net.Remotes.*", elements: ["teste"] },
+    { nom: "Utilitaires", fichiers: "Signal, Trove, Validate, Log, GameState", elements: ["teste"] },
+    { nom: "Textes FR / EN", fichiers: "Shared.Locale", elements: ["teste", "ecrit"] },
+    { nom: "Physique de balle (simulation pure)", fichiers: "Logic.BallMath, Config.Gameplay", elements: ["teste"] },
+    { nom: "Service de balle (240 Hz)", fichiers: "Services.BallService — 3 035 lignes", elements: ["ecrit"] },
+    { nom: "Combat, déplacements, collisions", fichiers: "CombatService, MovementService, CollisionService, NetworkValidation", elements: ["ecrit"] },
+    { nom: "Entrées et caméra", fichiers: "InputController, CameraController", elements: ["ecrit"] },
+    { nom: "Effets visuels et sons", fichiers: "EffectsController, Effects.Core, Config.Sounds", elements: ["ecrit"] },
+    { nom: "Objets (17)", fichiers: "Config.Items, ItemOdds · ItemService à écrire", elements: ["teste", "afaire", "afaire"] },
+    { nom: "Progression et économie", fichiers: "Achievements, Rewards, AchievementService, RewardService", elements: ["teste", "ecrit"] },
+    { nom: "Cosmétiques", fichiers: "Shared.Cosmetics, CosmeticService, catalogues", elements: ["ecrit", "ecrit", "encours", "afaire"] },
+    { nom: "Sauvegarde", fichiers: "Schema, DataStoreAdapter · PlayerDataService absent", elements: ["ecrit", "ecrit", "afaire", "afaire"] },
+    { nom: "Trous : format, validateur, constructeur", fichiers: "HoleValidator, HoleBuilder, Props, Data.Holes", elements: ["encours"] },
+    { nom: "Parcours et accueil", fichiers: "CourseService, Obstacles, LobbyBuilder", elements: ["encours"] },
+    { nom: "Partie : machine à états, modes, salon", fichiers: "MatchService, SpawnService, LobbyService", elements: ["encours", "ecrit"] },
+    { nom: "Visée, actions, balle visuelle, HUD", fichiers: "GolfAimController, ActionController, HUDController", elements: ["encours"] },
+    { nom: "Interface : thème, composants, écrans", fichiers: "UI.Theme, UI.Components, UI.Screens", elements: ["encours"] },
+    { nom: "Animations et émotes", fichiers: "Shared.Animations · AnimationController, EmoteService absents", elements: ["ecrit", "afaire"] },
+    { nom: "81 trous", fichiers: "Côte 18, Forêt 18, Désert 18, Neige 18, Ville 9", pourcent: 3, statut: "encours" },
+    { nom: "Voiturettes", fichiers: "VehicleService, VehicleController", elements: ["afaire"] },
+    { nom: "Boutique, défis, spectateur, tutoriel", fichiers: "écrans à créer", elements: ["afaire"] },
+    { nom: "Tests multi-clients, latence, performances", fichiers: "DevBridge, StudioTestService", elements: ["afaire"] }
+  ],
+  taches: {
+    terminees: [
+      "Lecture complète de 00_LISEZMOI_TRANSFERT.md (architecture, état, annexes A à E)",
+      "Vérification de la présence des sources sur disque (src/, docs/, scripts/, legacy/)",
+      "Création de dashboard.html"
+    ],
+    encours: [
+      "Plan de la première amélioration (en attente de ta validation)"
+    ],
+    afaire: [
+      "Vérifier les 5 points d'intégration signalés au §7 du document",
+      "Écrire les modules absents : PlayerDataService, ProfileStore, MemoryAdapter, Migrations",
+      "Terminer la boucle jouable et la jouer en Play solo (DevBridge scenario)",
+      "Découper les gros modules : BallService (3 035 l.), MatchService (2 725 l.), CourseService (1 850 l.)",
+      "ItemService + 17 comportements d'objets",
+      "VehicleService + VehicleController",
+      "75 trous restants et validation automatique",
+      "Cosmétiques restants et écrans Boutique / Personnaliser / Défis",
+      "Spectateur, tutoriel, parties privées",
+      "Tests multi-clients, latence, performances, accessibilité"
+    ]
+  },
+  journal: [
+    { date: "14/11/2026", titre: "Plan de l'étape 1 proposé", texte: "Accès aux services centralisé dans un seul module (Server.Util.Services) à la place des 11 copies réparties dans les services. En attente de validation ; aucun fichier du jeu modifié." },
+    { date: "14/11/2026", titre: "Constats de l'analyse du code", texte: "Les 12 clés de texte shop.err.* utilisées par CosmeticService n'existent dans aucun fichier de Locale (ni fr ni en). La fonction de recherche d'un service est recopiée dans 11 fichiers serveur, sous 3 variantes." },
+    { date: "14/11/2026", titre: "Étape 0 — suivi en place", texte: "Création de dashboard.html et ajout de la section « Journal de reprise » dans 00_LISEZMOI_TRANSFERT.md. Aucun fichier du jeu modifié." },
+    { date: "14/11/2026", titre: "Constat à la lecture", texte: "PlayerDataService, ProfileStore, MemoryAdapter, Migrations, AnimationController et EmoteService sont cités « en cours » dans le document mais absents du dossier src/. Trois services (Cosmetic, Achievement, Reward) dépendent de PlayerDataService." }
+  ]
+};
+</script>
+<style>
+  :root {
+    --bg: #0d1117; --surface: #151b24; --surface-2: #1b2330; --line: #263041;
+    --text: #e8edf4; --muted: #8b98ab; --accent: #4ade80;
+    --teste: #4ade80; --ecrit: #60a5fa; --encours: #fbbf24; --afaire: #5b6779;
+    --font: "Segoe UI", system-ui, -apple-system, sans-serif;
+    --mono: "Cascadia Code", Consolas, ui-monospace, monospace;
+  }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: var(--bg); color: var(--text); font: 15px/1.5 var(--font); }
+  .wrap { max-width: 1180px; margin: 0 auto; padding: 28px 20px 64px; }
+
+  header { display: flex; flex-wrap: wrap; align-items: flex-end; justify-content: space-between; gap: 16px; margin-bottom: 24px; }
+  h1 { margin: 0; font-size: 30px; letter-spacing: -0.02em; font-weight: 700; }
+  h1 span { color: var(--accent); }
+  .sub { color: var(--muted); margin-top: 2px; }
+  .live { display: flex; align-items: center; gap: 10px; font: 13px var(--mono); color: var(--muted);
+          background: var(--surface); border: 1px solid var(--line); border-radius: 999px; padding: 7px 14px; }
+  .dot { width: 8px; height: 8px; border-radius: 50%; background: var(--accent); animation: pulse 1.6s ease-in-out infinite; }
+  @keyframes pulse { 50% { opacity: .25; } }
+  @media (prefers-reduced-motion: reduce) { .dot { animation: none; } }
+
+  .hero { display: grid; grid-template-columns: 220px 1fr; gap: 28px; align-items: center;
+          background: var(--surface); border: 1px solid var(--line); border-radius: 16px; padding: 24px 28px; margin-bottom: 20px; }
+  .ring { position: relative; width: 200px; height: 200px; }
+  .ring svg { width: 100%; height: 100%; transform: rotate(-90deg); }
+  .ring .num { position: absolute; inset: 0; display: grid; place-content: center; text-align: center; }
+  .ring .num b { font-size: 46px; font-weight: 700; letter-spacing: -0.03em; font-variant-numeric: tabular-nums; }
+  .ring .num small { color: var(--muted); font-size: 12px; text-transform: uppercase; letter-spacing: .08em; }
+  .step-tag { font: 12px var(--mono); color: var(--accent); text-transform: uppercase; letter-spacing: .1em; }
+  .hero h2 { margin: 4px 0 6px; font-size: 22px; }
+  .hero p { margin: 0 0 16px; color: var(--muted); max-width: 62ch; }
+  .stack { display: flex; height: 10px; border-radius: 999px; overflow: hidden; background: var(--surface-2); }
+  .stack i { display: block; height: 100%; }
+  .legend { display: flex; flex-wrap: wrap; gap: 6px 18px; margin-top: 10px; font-size: 13px; color: var(--muted); }
+  .legend span::before { content: ""; display: inline-block; width: 9px; height: 9px; border-radius: 3px; margin-right: 7px; background: var(--c); }
+
+  .stats { display: grid; grid-template-columns: repeat(6, 1fr); gap: 12px; margin-bottom: 28px; }
+  .stat { background: var(--surface); border: 1px solid var(--line); border-radius: 12px; padding: 14px 16px; }
+  .stat b { display: block; font-size: 22px; font-weight: 700; font-variant-numeric: tabular-nums; letter-spacing: -0.02em; }
+  .stat span { color: var(--muted); font-size: 12.5px; }
+
+  h3 { font-size: 13px; text-transform: uppercase; letter-spacing: .1em; color: var(--muted); margin: 0 0 12px; font-weight: 600; }
+  section { margin-bottom: 32px; }
+
+  .systems { display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px 14px; }
+  .sys { background: var(--surface); border: 1px solid var(--line); border-radius: 12px; padding: 12px 16px 14px; min-width: 0; }
+  .sys-top { display: flex; justify-content: space-between; align-items: baseline; gap: 12px; }
+  .sys-name { font-weight: 600; }
+  .sys-pct { font: 600 14px var(--mono); font-variant-numeric: tabular-nums; color: var(--c); }
+  .sys-files { color: var(--muted); font-size: 12.5px; margin: 1px 0 9px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .bar { height: 6px; border-radius: 999px; background: var(--surface-2); overflow: hidden; }
+  .fill { height: 100%; border-radius: 999px; background: var(--c); }
+
+  .cols { display: grid; grid-template-columns: repeat(3, 1fr); gap: 14px; }
+  .col { background: var(--surface); border: 1px solid var(--line); border-radius: 12px; padding: 14px 16px; border-top: 3px solid var(--c); }
+  .col h4 { margin: 0 0 10px; font-size: 15px; display: flex; justify-content: space-between; }
+  .col h4 em { font: normal 13px var(--mono); color: var(--muted); }
+  .col ul { list-style: none; margin: 0; padding: 0; display: grid; gap: 8px; }
+  .col li { padding-left: 20px; position: relative; font-size: 14px; color: #cfd7e2; }
+  .col li::before { content: ""; position: absolute; left: 0; top: 7px; width: 9px; height: 9px; border-radius: 50%; border: 2px solid var(--c); }
+  .col.done li::before { background: var(--c); }
+  .col.done li { color: var(--muted); }
+
+  .log { background: var(--surface); border: 1px solid var(--line); border-radius: 12px; padding: 6px 18px; }
+  .entry { display: grid; grid-template-columns: 96px 1fr; gap: 16px; padding: 14px 0; border-bottom: 1px solid var(--line); }
+  .entry:last-child { border-bottom: 0; }
+  .entry time { font: 12.5px var(--mono); color: var(--muted); padding-top: 2px; }
+  .entry b { display: block; }
+  .entry p { margin: 2px 0 0; color: var(--muted); font-size: 14px; }
+
+  footer { color: var(--muted); font-size: 12.5px; text-align: center; }
+  footer code { font-family: var(--mono); }
+
+  @media (max-width: 900px) {
+    .hero { grid-template-columns: 1fr; justify-items: center; text-align: center; }
+    .hero p { margin-inline: auto; }
+    .legend { justify-content: center; }
+    .stats { grid-template-columns: repeat(3, 1fr); }
+    .systems, .cols { grid-template-columns: 1fr; }
+  }
+  @media (max-width: 520px) {
+    .wrap { padding: 20px 16px 48px; }
+    .stats { grid-template-columns: repeat(2, 1fr); }
+    .entry { grid-template-columns: 1fr; gap: 2px; }
+    h1 { font-size: 24px; }
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <div>
+      <h1>Golf <span>Chaos</span></h1>
+      <div class="sub">Reprise et amélioration du code — tableau de bord</div>
+    </div>
+    <div class="live"><i class="dot"></i><span id="clock">—</span></div>
+  </header>
+
+  <div class="hero">
+    <div class="ring">
+      <svg viewBox="0 0 120 120" aria-hidden="true">
+        <circle cx="60" cy="60" r="52" fill="none" stroke="#1b2330" stroke-width="10"/>
+        <circle id="ringArc" cx="60" cy="60" r="52" fill="none" stroke="#4ade80" stroke-width="10" stroke-linecap="round"/>
+      </svg>
+      <div class="num"><div><b id="globalPct">0</b><b style="font-size:22px">%</b><br><small>avancement global</small></div></div>
+    </div>
+    <div>
+      <div class="step-tag" id="stepTag"></div>
+      <h2 id="stepTitle"></h2>
+      <p id="stepDetail"></p>
+      <div class="stack" id="stack"></div>
+      <div class="legend" id="legend"></div>
+    </div>
+  </div>
+
+  <div class="stats" id="stats"></div>
+
+  <section>
+    <h3>Avancement par système</h3>
+    <div class="systems" id="systems"></div>
+  </section>
+
+  <section>
+    <h3>Tâches</h3>
+    <div class="cols" id="tasks"></div>
+  </section>
+
+  <section>
+    <h3>Journal des modifications</h3>
+    <div class="log" id="log"></div>
+  </section>
+
+  <footer>Page rechargée automatiquement toutes les 5 secondes · données mises à jour le <span id="maj"></span> · source : <code>00_LISEZMOI_TRANSFERT.md</code></footer>
+</div>
+
+<script>
+(function () {
+  const POIDS = { teste: 100, ecrit: 60, encours: 30, afaire: 0 };
+  const NOMS = { teste: "Testé dans Studio", ecrit: "Écrit, non joué", encours: "En cours", afaire: "À faire" };
+  const esc = s => String(s).replace(/[&<>"]/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
+  const $ = id => document.getElementById(id);
+
+  const systemes = DATA.systemes.map(s => {
+    const el = s.elements || [];
+    const pct = s.pourcent != null ? s.pourcent : Math.round(el.reduce((a, e) => a + POIDS[e], 0) / el.length);
+    const statut = s.statut || (pct === 100 ? "teste" : pct === 0 ? "afaire" : el.includes("encours") ? "encours" : pct >= 60 ? "ecrit" : "encours");
+    return { ...s, pct, statut };
+  });
+
+  const global = Math.round(systemes.reduce((a, s) => a + s.pct, 0) / systemes.length);
+  $("globalPct").textContent = global;
+  const circ = 2 * Math.PI * 52;
+  $("ringArc").setAttribute("stroke-dasharray", (circ * global / 100) + " " + circ);
+
+  $("stepTag").textContent = "Étape " + DATA.etape.numero;
+  $("stepTitle").textContent = DATA.etape.titre;
+  $("stepDetail").textContent = DATA.etape.detail;
+  $("maj").textContent = DATA.majLe;
+
+  const compte = { teste: 0, ecrit: 0, encours: 0, afaire: 0 };
+  systemes.forEach(s => compte[s.statut]++);
+  $("stack").innerHTML = Object.keys(compte).map(k =>
+    `<i style="width:${compte[k] / systemes.length * 100}%;background:var(--${k})"></i>`).join("");
+  $("legend").innerHTML = Object.keys(compte).map(k =>
+    `<span style="--c:var(--${k})">${NOMS[k]} · ${compte[k]}</span>`).join("");
+
+  $("stats").innerHTML = DATA.chiffres.map(c =>
+    `<div class="stat"><b>${esc(c.valeur)}</b><span>${esc(c.libelle)}</span></div>`).join("");
+
+  $("systems").innerHTML = systemes.map(s =>
+    `<div class="sys" style="--c:var(--${s.statut})">
+       <div class="sys-top"><span class="sys-name">${esc(s.nom)}</span><span class="sys-pct">${s.pct}%</span></div>
+       <div class="sys-files" title="${esc(s.fichiers)}">${esc(s.fichiers)}</div>
+       <div class="bar"><div class="fill" style="width:${s.pct}%"></div></div>
+     </div>`).join("");
+
+  const colonnes = [
+    ["terminees", "Terminées", "teste", "done"],
+    ["encours", "En cours", "encours", ""],
+    ["afaire", "À faire", "afaire", ""]
+  ];
+  $("tasks").innerHTML = colonnes.map(([cle, titre, couleur, cls]) =>
+    `<div class="col ${cls}" style="--c:var(--${couleur})">
+       <h4>${titre}<em>${DATA.taches[cle].length}</em></h4>
+       <ul>${DATA.taches[cle].map(t => `<li>${esc(t)}</li>`).join("")}</ul>
+     </div>`).join("");
+
+  $("log").innerHTML = DATA.journal.map(j =>
+    `<div class="entry"><time>${esc(j.date)}</time><div><b>${esc(j.titre)}</b><p>${esc(j.texte)}</p></div></div>`).join("");
+
+  // Horloge + compte à rebours du prochain rechargement
+  let reste = 5;
+  const tick = () => {
+    $("clock").textContent = new Date().toLocaleTimeString("fr-FR") + " · rechargement dans " + reste + " s";
+    reste = Math.max(0, reste - 1);
+  };
+  tick(); setInterval(tick, 1000);
+
+  // Conserver la position de défilement d'un rechargement à l'autre
+  try {
+    const y = sessionStorage.getItem("gc-scroll");
+    if (y) window.scrollTo(0, +y);
+    window.addEventListener("beforeunload", () => sessionStorage.setItem("gc-scroll", String(window.scrollY)));
+  } catch (e) { /* stockage indisponible : sans effet */ }
+})();
+</script>
+</body>
+</html>

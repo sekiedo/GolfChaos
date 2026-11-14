@@ -1,0 +1,17 @@
+# Outils telecharges (reproductibles via scripts/install-tools.ps1)
+tools/*.exe
+tools/*.zip
+
+# Sorties de construction (regenerables via scripts/build.ps1)
+build/*
+!build/.gitkeep
+
+# Fichiers Studio temporaires
+*.rbxl.lock
+*.rbxlx.lock
+*.rbxl.bak
+*.rbxlx.bak
+
+# Systeme
+Thumbs.db
+.DS_Store

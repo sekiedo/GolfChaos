@@ -1,0 +1,75 @@
+{
+  "name": "GolfChaos",
+  "tree": {
+    "$className": "DataModel",
+    "ReplicatedStorage": {
+      "$className": "ReplicatedStorage",
+      "Shared": {
+        "$path": "src/shared"
+      }
+    },
+    "ServerScriptService": {
+      "$className": "ServerScriptService",
+      "Server": {
+        "$path": "src/server"
+      }
+    },
+    "ServerStorage": {
+      "$className": "ServerStorage",
+      "Tests": {
+        "$path": "src/tests"
+      }
+    },
+    "StarterPlayer": {
+      "$className": "StarterPlayer",
+      "$properties": {
+        "LoadCharacterAppearance": false,
+        "CameraMaxZoomDistance": 90,
+        "CameraMinZoomDistance": 4,
+        "CharacterWalkSpeed": 16,
+        "CharacterJumpPower": 50,
+        "CharacterUseJumpPower": true,
+        "EnableMouseLockOption": false,
+        "AvatarJointUpgrade": "Disabled"
+      },
+      "StarterPlayerScripts": {
+        "$className": "StarterPlayerScripts",
+        "Client": {
+          "$path": "src/client"
+        }
+      }
+    },
+    "Players": {
+      "$className": "Players",
+      "$properties": {
+        "CharacterAutoLoads": false
+      }
+    },
+    "Workspace": {
+      "$className": "Workspace",
+      "$properties": {
+        "StreamingEnabled": false,
+        "PhysicsSteppingMethod": "Fixed",
+        "SignalBehavior": "Deferred",
+        "TouchesUseCollisionGroups": true,
+        "FallenPartsDestroyHeight": -2000,
+        "Gravity": 196.2
+      }
+    },
+    "Lighting": {
+      "$className": "Lighting",
+      "$properties": {
+        "Technology": "ShadowMap",
+        "ClockTime": 14,
+        "Brightness": 2.5,
+        "GlobalShadows": true
+      }
+    },
+    "SoundService": {
+      "$className": "SoundService"
+    },
+    "TextChatService": {
+      "$className": "TextChatService"
+    }
+  }
+}
