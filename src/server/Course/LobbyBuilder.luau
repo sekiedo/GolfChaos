@@ -407,11 +407,11 @@ end
 local function buildGround(folder: Folder, origin: Vector3)
 	local ground = folderIn(folder, "Sol")
 	local depth = LAYOUT.IslandDepth
-	disc(ground, "Ile", LAYOUT.IslandRadius * 2, depth, origin - Vector3.new(0, depth / 2, 0), COLORS.grass, Enum.Material.SmoothPlastic, { surface = "Fairway" })
-	disc(ground, "Falaise", LAYOUT.IslandRadius * 2 + 4, depth, origin - Vector3.new(0, depth / 2 + 1.2, 0), COLORS.cliff, Enum.Material.SmoothPlastic)
-	disc(ground, "Socle", LAYOUT.IslandRadius * 2 - 8, 8, origin - Vector3.new(0, depth + 4, 0), COLORS.dirt, Enum.Material.SmoothPlastic)
+	disc(ground, "Ile", LAYOUT.IslandRadius * 2, depth, origin - Vector3.new(0, depth / 2, 0), COLORS.grass, Enum.Material.Grass, { surface = "Fairway" })
+	disc(ground, "Falaise", LAYOUT.IslandRadius * 2 + 4, depth, origin - Vector3.new(0, depth / 2 + 1.2, 0), COLORS.cliff, Enum.Material.Slate)
+	disc(ground, "Socle", LAYOUT.IslandRadius * 2 - 8, 8, origin - Vector3.new(0, depth + 4, 0), COLORS.dirt, Enum.Material.Ground)
 	-- Mer décorative non collidable : tout ce qui tombe la traverse et passe sous la zone mortelle.
-	newPart(ground, "Mer", Vector3.new(2048, 1, 2048), CFrame.new(origin + Vector3.new(0, -14, -150)), COLORS.sea, Enum.Material.SmoothPlastic, {
+	newPart(ground, "Mer", Vector3.new(2048, 1, 2048), CFrame.new(origin + Vector3.new(0, -14, -150)), COLORS.sea, Enum.Material.Glass, {
 		collide = false,
 		query = false,
 		transparency = 0.05,
@@ -420,8 +420,8 @@ local function buildGround(folder: Folder, origin: Vector3)
 	})
 
 	-- Place pavée à motifs concentriques.
-	disc(ground, "Place", LAYOUT.PlazaRadius * 2, 0.4, origin + Vector3.new(0, 0, 0), COLORS.paving, Enum.Material.SmoothPlastic, { surface = "Rock" })
-	disc(ground, "Bordure", LAYOUT.PlazaRadius * 2 + 2, 0.3, origin + Vector3.new(0, -0.02, 0), COLORS.pavingDark, Enum.Material.SmoothPlastic, { surface = "Rock" })
+	disc(ground, "Place", LAYOUT.PlazaRadius * 2, 0.4, origin + Vector3.new(0, 0, 0), COLORS.paving, Enum.Material.Cobblestone, { surface = "Rock" })
+	disc(ground, "Bordure", LAYOUT.PlazaRadius * 2 + 2, 0.3, origin + Vector3.new(0, -0.02, 0), COLORS.pavingDark, Enum.Material.Slate, { surface = "Rock" })
 	decor(ground, "Motif", Vector3.new(0.05, 64, 64), CFrame.new(origin + Vector3.new(0, 0.22, 0)) * CFrame.Angles(0, 0, math.pi / 2), COLORS.pavingDark, Enum.Material.SmoothPlastic, { shape = Enum.PartType.Cylinder, shadow = false })
 	decor(ground, "Motif", Vector3.new(0.06, 58, 58), CFrame.new(origin + Vector3.new(0, 0.23, 0)) * CFrame.Angles(0, 0, math.pi / 2), COLORS.paving, Enum.Material.SmoothPlastic, { shape = Enum.PartType.Cylinder, shadow = false })
 	-- Rayons colorés (rosace) entre la fontaine et la couronne d'apparition.
@@ -436,8 +436,8 @@ end
 local function buildFountain(folder: Folder, origin: Vector3)
 	local fountain = folderIn(folder, "Fontaine")
 	local r = LAYOUT.FountainRadius
-	disc(fountain, "Bassin", r * 2, 1.6, origin + Vector3.new(0, 0.8, 0), COLORS.stone, Enum.Material.SmoothPlastic, { surface = "Rock" })
-	disc(fountain, "Margelle", r * 2 + 1, 0.4, origin + Vector3.new(0, 1.7, 0), COLORS.white, Enum.Material.SmoothPlastic, { surface = "Rock" })
+	disc(fountain, "Bassin", r * 2, 1.6, origin + Vector3.new(0, 0.8, 0), COLORS.stone, Enum.Material.Cobblestone, { surface = "Rock" })
+	disc(fountain, "Margelle", r * 2 + 1, 0.4, origin + Vector3.new(0, 1.7, 0), COLORS.white, Enum.Material.Marble, { surface = "Rock" })
 	disc(fountain, "Eau", r * 2 - 1.6, 0.2, origin + Vector3.new(0, 1.75, 0), COLORS.water, Enum.Material.Glass, { collide = false, query = false, transparency = 0.15, reflectance = 0.15 })
 	-- Socle et statue : balle de golf géante sur son tee (création originale).
 	disc(fountain, "Socle", 5, 3, origin + Vector3.new(0, 3, 0), COLORS.stoneDark, Enum.Material.SmoothPlastic, { surface = "Rock" })
@@ -943,6 +943,19 @@ function LobbyBuilder.build(origin: Vector3, parent: Instance): LobbyInfo
 	end
 	table.insert(keepClear, origin + LAYOUT.PodiumCenter)
 	buildBoundary(folder, origin)
+	do
+		local positions: { Vector3 } = {}
+		for _, spec in KIOSKS do
+			table.insert(positions, spec.position)
+		end
+		local ok, extras = pcall(require, script.Parent.LobbyExtras)
+		if ok then
+			local built, reason = pcall(extras.build, folder, origin, positions)
+			if not built then
+				Log.warn("Lobby", "decor additionnel ignore : " .. tostring(reason))
+			end
+		end
+	end
 	buildDecor(folder, origin, rng, props, palette, keepClear)
 
 	-- Une seule insertion dans le DataModel (réplication groupée).

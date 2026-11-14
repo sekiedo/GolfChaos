@@ -495,6 +495,26 @@ do
 	Biomes.List.Lobby = lobby
 end
 
+-- Matériaux réalistes : herbe (Grass) pour fairway/rough/green, sol (Ground) pour les bordures et le terreau.
+-- Seul le rendu change : la physique de la balle lit l'attribut "Surface", jamais le matériau.
+do
+	local seen: { [any]: boolean } = {}
+	for _, biome in Biomes.List do
+		if not seen[biome.ground] then
+			seen[biome.ground] = true
+			for _, name in { "Fairway", "Rough", "Green" } do
+				local entry = biome.ground[name]
+				if entry and entry.material == Enum.Material.SmoothPlastic then
+					entry.material = Enum.Material.Grass
+				end
+			end
+		end
+		if biome.edge.material == Enum.Material.SmoothPlastic then
+			biome.edge = { color = biome.edge.color, material = Enum.Material.Ground, alt = biome.edge.alt }
+		end
+	end
+end
+
 -- Définition d'un biome (repli : Training, jamais nil).
 function Biomes.get(name: string?): BiomeDef
 	return (name and Biomes.List[name]) or Biomes.List.Training
